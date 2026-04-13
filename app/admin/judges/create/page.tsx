@@ -21,27 +21,37 @@ export default function CreateJudge() {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: judgeEmail,
         password: password,
+        options: {
+          data: {
+            full_name: name, // This saves to the Auth metadata as a backup
+            role: 'judge'
+          }
+        }
       });
 
       if (authError) throw authError;
 
-      // 2. Add the judge to your 'profiles' table 
-      // 💡 FIX: Removed 'email' column to match your database schema
+      // 2. Add to profiles table - using a more flexible approach
       const { error: profileError } = await supabase.from('profiles').insert([
         { 
           id: authData.user?.id, 
-          full_name: name, 
-          role: 'judge' 
+          role: 'judge'
+          // 💡 We will leave 'full_name' out for a second to see if it works
         }
       ]);
 
-      if (profileError) throw profileError;
+      // If the insert above fails, it's a table column name issue
+      if (profileError) {
+        console.error("Profile Insert Error:", profileError);
+        alert("Account created, but could not save profile details. Check your Supabase table column names.");
+      } else {
+        alert(`✅ Judge "${username}" created successfully!`);
+      }
 
-      alert(`✅ Judge "${username}" created successfully!`);
       router.push('/admin/dashboard');
       
     } catch (err: any) {
-      alert("❌ Error: " + err.message);
+      alert("❌ Critical Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -53,17 +63,17 @@ export default function CreateJudge() {
         <h1 className="text-2xl font-black text-slate-900 uppercase italic mb-6">Assign <span className="text-purple-600">Judge</span></h1>
         <form onSubmit={handleCreate} className="space-y-4">
           <input 
-            type="text" required placeholder="Full Name" 
+            type="text" required placeholder="Display Name (e.g. Divena)" 
             className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-purple-500"
             value={name} onChange={(e) => setName(e.target.value)} 
           />
           <input 
-            type="text" required placeholder="Username" 
+            type="text" required placeholder="Username (e.g. judge1)" 
             className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-purple-500"
             value={username} onChange={(e) => setUsername(e.target.value)} 
           />
           <input 
-            type="password" required placeholder="Set Password" 
+            type="password" required placeholder="Password" 
             className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-purple-500"
             value={password} onChange={(e) => setPassword(e.target.value)} 
           />
