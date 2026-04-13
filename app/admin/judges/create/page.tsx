@@ -17,21 +17,27 @@ export default function CreateJudge() {
     const judgeEmail = `${username.trim()}@master.com`;
 
     try {
+      // 1. Create the account in Supabase Authentication
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: judgeEmail,
         password: password,
-        options: { data: { full_name: name, role: 'judge' } }
       });
 
       if (authError) throw authError;
 
+      // 2. Add the judge to your 'profiles' table 
+      // 💡 FIX: Removed 'email' column to match your database schema
       const { error: profileError } = await supabase.from('profiles').insert([
-        { id: authData.user?.id, full_name: name, email: judgeEmail, role: 'judge' }
+        { 
+          id: authData.user?.id, 
+          full_name: name, 
+          role: 'judge' 
+        }
       ]);
 
       if (profileError) throw profileError;
 
-      alert(`✅ Judge "${username}" created!`);
+      alert(`✅ Judge "${username}" created successfully!`);
       router.push('/admin/dashboard');
       
     } catch (err: any) {
@@ -48,20 +54,20 @@ export default function CreateJudge() {
         <form onSubmit={handleCreate} className="space-y-4">
           <input 
             type="text" required placeholder="Full Name" 
-            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold"
+            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-purple-500"
             value={name} onChange={(e) => setName(e.target.value)} 
           />
           <input 
             type="text" required placeholder="Username" 
-            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold"
+            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-purple-500"
             value={username} onChange={(e) => setUsername(e.target.value)} 
           />
           <input 
             type="password" required placeholder="Set Password" 
-            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold"
+            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-purple-500"
             value={password} onChange={(e) => setPassword(e.target.value)} 
           />
-          <button disabled={loading} className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black uppercase text-xs shadow-lg">
+          <button disabled={loading} className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black uppercase text-xs shadow-lg active:scale-95 transition-all">
             {loading ? "Creating..." : "Create Judge Account"}
           </button>
         </form>
