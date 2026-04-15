@@ -15,31 +15,35 @@ export default function LoginPage() {
     setLoading(true);
     setErrorMsg('');
 
-    // 💡 TRICK: Convert username to the hidden email format used during creation
-    const email = username.includes('@') ? username : `${username.trim()}@master.com`;
+    // 💡 THE FIX: 
+    // If you type a full email (like your Admin email), it uses it directly.
+    // If you type a username (like 'judge1'), it adds '@master.com'.
+    const loginIdentifier = username.includes('@') 
+      ? username.trim() 
+      : `${username.trim()}@master.com`;
 
     try {
       // 1. Authenticate with Supabase
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: loginIdentifier,
+        password: password,
       });
 
       if (authError) throw new Error("Invalid username or password.");
 
       if (data.user) {
-        // 2. Fetch the user's role from the 'profiles' table
+        // 2. Fetch the role from the 'profiles' table
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .maybeSingle();
 
-        if (profileError) throw new Error("Database connection error.");
+        if (profileError) throw new Error("Database error. Please try again.");
 
-        // 3. Route based on the assigned role
+        // 3. Routing Logic
         if (!profile) {
-          setErrorMsg("No role assigned to this user. Contact Admin.");
+          setErrorMsg("No profile assigned to this user. Contact Admin.");
         } else if (profile.role === 'admin') {
           router.push('/admin/dashboard');
         } else {
@@ -58,14 +62,14 @@ export default function LoginPage() {
       <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100 w-full max-w-sm">
         
         <div className="text-center mb-8">
-          <div className="bg-blue-600 text-white w-12 h-12 flex items-center justify-center rounded-2xl text-xl font-black mx-auto mb-4 shadow-lg shadow-blue-100">
+          <div className="bg-blue-600 text-white w-12 h-12 flex items-center justify-center rounded-2xl text-xl font-black mx-auto mb-4 shadow-lg shadow-blue-100 italic">
             G
           </div>
           <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">
             Grade <span className="text-blue-600">Master 2.0</span>
           </h1>
           <p className="text-slate-400 text-[10px] font-bold mt-2 uppercase tracking-[0.2em]">
-            Competition Portal
+            Official Portal
           </p>
         </div>
 
@@ -77,11 +81,11 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Username</label>
+            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Username or Email</label>
             <input 
               type="text" 
               required 
-              placeholder="e.g. judge1"
+              placeholder="Admin email or Judge username"
               className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white focus:ring-0 transition-all font-bold text-slate-700 outline-none"
               value={username} 
               onChange={(e) => setUsername(e.target.value)}
@@ -102,15 +106,11 @@ export default function LoginPage() {
 
           <button 
             disabled={loading}
-            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4 disabled:opacity-50 disabled:active:scale-100"
+            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all mt-4 disabled:opacity-50"
           >
             {loading ? "Verifying..." : "Sign In"}
           </button>
         </form>
-
-        <p className="text-center text-[9px] text-slate-300 font-bold uppercase tracking-widest mt-8">
-          Authorized Personnel Only
-        </p>
       </div>
     </div>
   );
