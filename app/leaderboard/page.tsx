@@ -14,7 +14,7 @@ export default function Leaderboard() {
   }, []);
 
   async function fetchLeaderboard() {
-    // 💡 Fetches all details including the new 'theme' and 'program' columns
+    // Fetches all details including the theme and program columns
     const { data, error } = await supabase
       .from('participants')
       .select(`id, booth_number, project_name, team_name, program, theme, scores ( score )`);
@@ -26,7 +26,18 @@ export default function Leaderboard() {
         finalScore: p.scores && p.scores.length > 0 
           ? p.scores.reduce((acc: number, s: any) => acc + s.score, 0) / p.scores.length 
           : 0
-      })).sort((a, b) => b.finalScore - a.finalScore); // Rank by highest score
+      })).sort((a, b) => {
+        // 1. Primary Sort: Rank by highest score
+        if (b.finalScore !== a.finalScore) {
+          return b.finalScore - a.finalScore;
+        }
+        // 2. Secondary Sort: If scores are tied, sort by Booth Number (1A, 1B, etc.)
+        return a.booth_number.localeCompare(b.booth_number, undefined, { 
+          numeric: true, 
+          sensitivity: 'base' 
+        });
+      });
+      
       setStandings(processed);
     }
     setLoading(false);
@@ -130,7 +141,7 @@ export default function Leaderboard() {
         {/* Footer info for verification */}
         <div className="mt-12 text-center py-6 border-t border-white/5 no-print">
           <p className="text-[8px] font-bold tracking-[0.4em] uppercase text-slate-600">
-            Real-time synchronization active • Medal colors updated automatically
+            Real-time synchronization active • Ranking sorted by score & booth number
           </p>
         </div>
       </div>
