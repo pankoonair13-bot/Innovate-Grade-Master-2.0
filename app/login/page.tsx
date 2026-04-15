@@ -15,41 +15,49 @@ export default function LoginPage() {
     setLoading(true);
     setErrorMsg('');
 
-    // 💡 THE LOGIC: 
-    // If you type 'pankoo@event.com', it uses it directly.
-    // If you type 'judge1', it adds '@master.com' to match your Auth list.
-    const loginIdentifier = username.includes('@') 
-      ? username.trim() 
-      : `${username.trim()}@master.com`;
+    // 💡 CUSTOM ROUTING LOGIC:
+    let emailToAuth = "";
+    const input = username.trim();
+
+    if (input === 'pankoo') {
+      // Automatically maps 'pankoo' to your actual admin email in Auth
+      emailToAuth = 'pankoo@event.com';
+    } else if (input.includes('@')) {
+      // Use full email if provided
+      emailToAuth = input;
+    } else {
+      // Default to judge format for other usernames
+      emailToAuth = `${input}@master.com`;
+    }
 
     try {
-      // 1. Authenticate with Supabase
+      // 1. Sign in to Supabase Auth
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: loginIdentifier,
+        email: emailToAuth,
         password: password,
       });
 
       if (authError) throw new Error("Invalid username or password.");
 
       if (data.user) {
-        // 2. Fetch the role from the 'profiles' table using the User ID
+        // 2. Fetch role from the 'profiles' table using the User UUID
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .maybeSingle();
 
-        if (profileError) throw new Error("Database connection error.");
+        if (profileError) throw new Error("Database error. Please try again.");
 
-        // 3. Final Routing
+        // 3. Direct users to the correct page based on their role
         if (!profile) {
-          setErrorMsg("No role assigned to this user in the profiles table.");
+          setErrorMsg("No role assigned. Check your profiles table in Supabase.");
         } else if (profile.role === 'admin') {
           router.push('/admin/dashboard');
         } else if (profile.role === 'judge') {
           router.push('/scoring');
         } else {
-          setErrorMsg("Role not recognized.");
+          setErrorMsg(`Role '${profile.role}' not recognized.`);
         }
       }
     } catch (err: any) {
@@ -85,11 +93,11 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Username or Email</label>
+            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Username</label>
             <input 
               type="text" 
               required 
-              placeholder="e.g. judge1 or admin@email.com"
+              placeholder="e.g. pankoo or judge1"
               className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white focus:ring-0 transition-all font-bold text-slate-700 outline-none"
               value={username} 
               onChange={(e) => setUsername(e.target.value)}
@@ -112,12 +120,12 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all mt-4 disabled:opacity-50"
           >
-            {loading ? "Logging in..." : "Sign In"}
+            {loading ? "Verifying..." : "Sign In"}
           </button>
         </form>
 
         <p className="text-center text-[9px] text-slate-300 font-bold uppercase tracking-widest mt-8">
-          Authorized Access Only
+          Authorized Personnel Only
         </p>
       </div>
     </div>
