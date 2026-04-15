@@ -15,9 +15,9 @@ export default function LoginPage() {
     setLoading(true);
     setErrorMsg('');
 
-    // 💡 THE FIX: 
-    // If you type a full email (like your Admin email), it uses it directly.
-    // If you type a username (like 'judge1'), it adds '@master.com'.
+    // 💡 THE LOGIC: 
+    // If you type 'pankoo@event.com', it uses it directly.
+    // If you type 'judge1', it adds '@master.com' to match your Auth list.
     const loginIdentifier = username.includes('@') 
       ? username.trim() 
       : `${username.trim()}@master.com`;
@@ -32,22 +32,24 @@ export default function LoginPage() {
       if (authError) throw new Error("Invalid username or password.");
 
       if (data.user) {
-        // 2. Fetch the role from the 'profiles' table
+        // 2. Fetch the role from the 'profiles' table using the User ID
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .maybeSingle();
 
-        if (profileError) throw new Error("Database error. Please try again.");
+        if (profileError) throw new Error("Database connection error.");
 
-        // 3. Routing Logic
+        // 3. Final Routing
         if (!profile) {
-          setErrorMsg("No profile assigned to this user. Contact Admin.");
+          setErrorMsg("No role assigned to this user in the profiles table.");
         } else if (profile.role === 'admin') {
           router.push('/admin/dashboard');
-        } else {
+        } else if (profile.role === 'judge') {
           router.push('/scoring');
+        } else {
+          setErrorMsg("Role not recognized.");
         }
       }
     } catch (err: any) {
@@ -75,7 +77,9 @@ export default function LoginPage() {
 
         {errorMsg && (
           <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl">
-            <p className="text-red-600 text-xs font-bold text-center">{errorMsg}</p>
+            <p className="text-red-600 text-[11px] font-bold text-center leading-tight">
+              {errorMsg}
+            </p>
           </div>
         )}
 
@@ -85,7 +89,7 @@ export default function LoginPage() {
             <input 
               type="text" 
               required 
-              placeholder="Admin email or Judge username"
+              placeholder="e.g. judge1 or admin@email.com"
               className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white focus:ring-0 transition-all font-bold text-slate-700 outline-none"
               value={username} 
               onChange={(e) => setUsername(e.target.value)}
@@ -108,9 +112,13 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all mt-4 disabled:opacity-50"
           >
-            {loading ? "Verifying..." : "Sign In"}
+            {loading ? "Logging in..." : "Sign In"}
           </button>
         </form>
+
+        <p className="text-center text-[9px] text-slate-300 font-bold uppercase tracking-widest mt-8">
+          Authorized Access Only
+        </p>
       </div>
     </div>
   );
