@@ -39,7 +39,7 @@ export default function ScoringPanel() {
       const { error } = await supabase.from('scores').insert([{
         participant_id: parseInt(selectedId),
         score: calculateTotal(), // Matches 'score' column in database
-        breakdown: marks        // Matches 'breakdown' column
+        breakdown: marks         // Matches 'breakdown' column
       }]);
 
       if (error) throw error;
@@ -55,17 +55,18 @@ export default function ScoringPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 pb-32 font-sans">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6 pb-40 font-sans">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-black text-slate-900 mb-8 uppercase tracking-tight">
-          EDIAs 2025 <span className="text-blue-600">Scoring</span>
+        {/* Updated Year to 2026 */}
+        <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-6 md:mb-8 uppercase tracking-tight text-center md:text-left">
+          EDIAs 2026 <span className="text-blue-600">Scoring</span>
         </h1>
 
         {/* Project Selector */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-blue-100 mb-8">
-          <label className="block text-xs font-bold uppercase text-slate-400 mb-2 tracking-widest">Select Project</label>
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-2 border-blue-100 mb-6 md:mb-8">
+          <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Select Project</label>
           <select 
-            className="w-full p-4 border rounded-xl bg-blue-50/50 font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            className="w-full p-3 md:p-4 border rounded-xl bg-blue-50/50 font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm md:text-base"
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
           >
@@ -78,24 +79,31 @@ export default function ScoringPanel() {
 
         {/* Sections A, B, and C */}
         {['A', 'B', 'C'].map(sec => (
-          <div key={sec} className="mb-8 bg-white rounded-2xl shadow-sm border overflow-hidden">
-            <div className="bg-slate-800 p-3 text-white text-xs font-bold uppercase tracking-widest px-6 flex justify-between">
+          <div key={sec} className="mb-6 md:mb-8 bg-white rounded-2xl shadow-sm border overflow-hidden">
+            <div className="bg-slate-800 p-3 text-white text-[10px] font-black uppercase tracking-widest px-6 flex justify-between">
               <span>Section {sec}</span>
               <span className="opacity-50">{sec === 'A' ? '80%' : sec === 'B' ? '15%' : '5%'}</span>
             </div>
-            <div className="p-6 space-y-8">
+            <div className="p-4 md:p-6 space-y-6 md:space-y-8">
               {criteria.filter(c => c.section === sec).map(item => (
                 <div key={item.id} className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-slate-700">{item.label}</span>
-                    <span className="text-[10px] font-black bg-slate-100 px-2 py-1 rounded text-slate-500">x{item.weight}</span>
+                  <div className="flex justify-between items-start gap-4">
+                    <span className="font-bold text-slate-700 text-sm md:text-base leading-tight">{item.label}</span>
+                    <span className="text-[10px] font-black bg-slate-100 px-2 py-1 rounded text-slate-500 shrink-0">x{item.weight}</span>
                   </div>
-                  <div className="flex justify-between gap-1">
+                  
+                  {/* Score Buttons - Grid for Mobile support */}
+                  <div className="grid grid-cols-5 md:flex md:justify-between gap-1.5 md:gap-1">
                     {[1,2,3,4,5,6,7,8,9,10].map(num => (
                       <button
                         key={num}
+                        type="button"
                         onClick={() => setMarks({...marks, [item.id]: num})}
-                        className={`flex-1 h-12 rounded-lg text-xs font-black transition-all ${marks[item.id] === num ? 'bg-blue-600 text-white scale-105 shadow-md' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+                        className={`h-10 md:h-12 rounded-lg text-xs font-black transition-all ${
+                          marks[item.id] === num 
+                            ? 'bg-blue-600 text-white scale-105 shadow-md z-10' 
+                            : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                        }`}
                       >
                         {num}
                       </button>
@@ -107,16 +115,16 @@ export default function ScoringPanel() {
           </div>
         ))}
 
-        {/* Bottom Total Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t p-6 px-10 flex justify-between items-center shadow-2xl z-50">
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Total</p>
-            <p className="text-4xl font-black text-blue-600">{calculateTotal().toFixed(2)}%</p>
+        {/* Responsive Bottom Total Bar */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t p-4 md:p-6 flex flex-col md:flex-row justify-between items-center shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 gap-4">
+          <div className="flex flex-row md:flex-col items-center md:items-start gap-4 md:gap-0">
+            <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Total</p>
+            <p className="text-3xl md:text-4xl font-black text-blue-600 leading-none">{calculateTotal().toFixed(2)}%</p>
           </div>
           <button 
             onClick={handleSubmit}
             disabled={submitting}
-            className="bg-blue-600 text-white px-12 py-4 rounded-2xl font-black text-lg shadow-xl hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50"
+            className="w-full md:w-auto bg-blue-600 text-white px-10 md:px-16 py-3.5 md:py-4 rounded-2xl font-black text-base md:text-lg shadow-xl hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50"
           >
             {submitting ? "SUBMITTING..." : "SUBMIT SCORE"}
           </button>
