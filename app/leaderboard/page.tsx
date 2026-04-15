@@ -8,97 +8,130 @@ export default function Leaderboard() {
 
   useEffect(() => {
     fetchLeaderboard();
+    // Auto-refresh every 15 seconds to keep results live
     const interval = setInterval(fetchLeaderboard, 15000);
     return () => clearInterval(interval);
   }, []);
 
   async function fetchLeaderboard() {
+    // 💡 Fetches all details including the new 'theme' and 'program' columns
     const { data, error } = await supabase
       .from('participants')
-      .select(`id, booth_number, project_name, team_name, scores ( score )`);
+      .select(`id, booth_number, project_name, team_name, program, theme, scores ( score )`);
 
     if (data) {
       const processed = data.map(p => ({
         ...p,
+        // Calculate average score from the scores table
         finalScore: p.scores && p.scores.length > 0 
           ? p.scores.reduce((acc: number, s: any) => acc + s.score, 0) / p.scores.length 
           : 0
-      })).sort((a, b) => b.finalScore - a.finalScore);
+      })).sort((a, b) => b.finalScore - a.finalScore); // Rank by highest score
       setStandings(processed);
     }
     setLoading(false);
   }
 
-  // 🎨 MEDAL COLORS (80+ Gold, 70+ Silver, 60+ Bronze)
+  // 🎨 MEDAL COLORS (80-100: Gold, 70-79: Silver, 60-69: Bronze)
   const getMedalStyles = (score: number) => {
-    if (score >= 80) return "bg-yellow-400 text-slate-900 border-yellow-500 shadow-[0_0_15px_rgba(250,204,21,0.3)]";
+    if (score >= 80) return "bg-yellow-400 text-slate-900 border-yellow-500 shadow-[0_0_20px_rgba(250,204,21,0.4)]";
     if (score >= 70) return "bg-slate-300 text-slate-800 border-slate-400";
     if (score >= 60) return "bg-orange-400 text-white border-orange-500";
-    return "bg-white/5 text-slate-400 border-white/10";
+    return "bg-white/5 text-slate-500 border-white/10";
   };
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-4 md:p-8 font-sans">
+      {/* 🖨️ Print Styles */}
       <style jsx global>{`
         @media print {
           body { background: white !important; color: black !important; }
           .no-print { display: none !important; }
-          .standings-row { page-break-inside: avoid; border: 1px solid #eee !important; margin-bottom: 10px !important; }
+          .standings-row { 
+            background: white !important; 
+            color: black !important; 
+            border: 1px solid #eee !important;
+            page-break-inside: avoid; 
+          }
         }
       `}</style>
 
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 no-print">
-          <div className="text-center md:text-left">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 no-print">
+          <div className="border-l-4 border-blue-600 pl-6">
             <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-blue-500 uppercase leading-none">
               Live Standings
             </h1>
-            <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-3">Official Competition Leaderboard</p>
+            <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-3">EDIAs 2026 Official Rankings</p>
           </div>
-          <div className="flex gap-3">
-            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/20">🖨️ Print</button>
-            <button onClick={fetchLeaderboard} className="bg-white/5 hover:bg-white/10 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border border-white/10">🔄 Refresh</button>
+          <div className="flex gap-4">
+            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg">🖨️ Print Report</button>
+            <button onClick={fetchLeaderboard} className="bg-white/5 hover:bg-white/10 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10">
+              {loading ? "..." : "🔄 Refresh"}
+            </button>
           </div>
         </div>
 
-        {/* Standings List */}
-        <div className="space-y-4">
+        {/* Rankings List */}
+        <div className="space-y-5">
           {standings.map((item, index) => (
-            <div key={item.id} className={`standings-row group flex flex-col md:flex-row items-center gap-4 p-4 rounded-[2rem] border transition-all duration-500 ${index === 0 ? 'bg-blue-500/10 border-blue-500/30' : 'bg-[#1e293b]/50 border-white/5'}`}>
+            <div 
+              key={item.id} 
+              className={`standings-row flex flex-col md:flex-row items-center gap-6 p-6 rounded-[3rem] border transition-all duration-500 ${
+                index === 0 ? 'bg-blue-600/10 border-blue-500/30 ring-1 ring-blue-500/20' : 'bg-[#1e293b]/40 border-white/5'
+              }`}
+            >
               
-              {/* Rank & Booth Section */}
-              <div className="flex items-center gap-4 shrink-0">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black italic text-2xl ${index === 0 ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/5 text-slate-500'}`}>
-                  #{index + 1}
-                </div>
-                <div className="md:hidden flex flex-col">
-                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Booth</span>
-                  <span className="text-lg font-bold text-white leading-none">{item.booth_number}</span>
-                </div>
+              {/* Rank Badge */}
+              <div className={`w-16 h-16 shrink-0 rounded-[1.5rem] flex items-center justify-center font-black italic text-3xl ${index === 0 ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40' : 'bg-white/5 text-slate-500'}`}>
+                {index + 1}
               </div>
 
-              {/* Info Section - Now uses flex-grow to take up space without pushing score off screen */}
-              <div className="flex-grow min-w-0 text-center md:text-left px-2">
-                <div className="hidden md:block mb-1">
-                  <span className="bg-blue-500/20 text-blue-400 text-[9px] font-black px-2 py-0.5 rounded border border-blue-500/20 uppercase">Booth {item.booth_number}</span>
+              {/* Project & Participant Details */}
+              <div className="flex-grow min-w-0 text-center md:text-left">
+                <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-3">
+                  <span className="bg-blue-500/20 text-blue-400 text-[9px] font-black px-3 py-1 rounded-lg border border-blue-500/20 uppercase tracking-widest">
+                    Booth {item.booth_number}
+                  </span>
+                  <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-black px-3 py-1 rounded-lg border border-emerald-500/20 uppercase tracking-widest">
+                    {item.program || 'N/A'}
+                  </span>
+                  <span className="bg-purple-500/20 text-purple-400 text-[9px] font-black px-3 py-1 rounded-lg border border-purple-500/20 uppercase tracking-widest">
+                    Theme: {item.theme || 'General'}
+                  </span>
                 </div>
-                <h2 className="text-sm md:text-base font-bold text-white uppercase tracking-tight leading-tight mb-1 line-clamp-2 md:line-clamp-none">
+                
+                <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-tight leading-tight mb-2 truncate">
                   {item.project_name}
                 </h2>
-                <p className="text-slate-500 text-[10px] font-semibold uppercase truncate tracking-wide">{item.team_name}</p>
+                
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <div className="h-[2px] w-4 bg-blue-500/40"></div>
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
+                    Team: <span className="text-blue-400">{item.team_name}</span>
+                  </p>
+                </div>
               </div>
 
-              {/* Score Badge - Fixed width to ensure it never gets squashed */}
-              <div className="shrink-0 w-full md:w-32 text-center md:text-right pt-2 md:pt-0 border-t md:border-t-0 md:border-l border-white/5">
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Final Score</p>
-                <div className={`inline-block min-w-[100px] px-4 py-2 rounded-2xl border-2 font-black text-lg tracking-tighter transition-all duration-700 ${getMedalStyles(item.finalScore)}`}>
+              {/* Final Score Section */}
+              <div className="shrink-0 w-full md:w-40 text-center md:text-right md:border-l border-white/10 md:pl-8 pt-4 md:pt-0">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Total Average</p>
+                <div className={`inline-block min-w-[120px] px-6 py-3 rounded-3xl border-2 font-black text-2xl tracking-tighter transition-all duration-700 ${getMedalStyles(item.finalScore)}`}>
                   {item.finalScore.toFixed(2)}%
                 </div>
               </div>
 
             </div>
           ))}
+        </div>
+
+        {/* Footer info for verification */}
+        <div className="mt-12 text-center py-6 border-t border-white/5 no-print">
+          <p className="text-[8px] font-bold tracking-[0.4em] uppercase text-slate-600">
+            Real-time synchronization active • Medal colors updated automatically
+          </p>
         </div>
       </div>
     </div>
