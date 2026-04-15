@@ -11,14 +11,12 @@ export default function ScoringPanel() {
 
   useEffect(() => {
     async function loadData() {
-      // Fetch participants and criteria from Supabase
       const { data: pData } = await supabase.from('participants').select('*').order('booth_number');
       const { data: cData } = await supabase.from('criteria').select('*').order('display_order');
       
       if (pData) setParticipants(pData);
       if (cData) {
         setCriteria(cData);
-        // Initialize all marks to 0 for every criteria ID
         const initial: any = {};
         cData.forEach(c => initial[c.id] = 0);
         setMarks(initial);
@@ -55,8 +53,9 @@ export default function ScoringPanel() {
   };
 
   return (
-    /* pb-80 is the "Repair" - it ensures Section C can be scrolled completely above the footer */
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6 pb-80 font-sans">
+    /* REPAIR: pb-[500px] creates massive empty space at the bottom 
+       so Section C can be scrolled completely clear of the footer on laptops */
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6 pb-[500px] font-sans">
       <div className="max-w-3xl mx-auto">
         
         <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-6 md:mb-8 uppercase tracking-tight text-center md:text-left">
@@ -99,7 +98,7 @@ export default function ScoringPanel() {
                     </span>
                   </div>
                   
-                  {/* Improved Score Button Layout */}
+                  {/* Score Button Layout - Optimized for Tap targets */}
                   <div className="grid grid-cols-5 md:flex md:justify-between gap-2">
                     {[1,2,3,4,5,6,7,8,9,10].map(num => (
                       <button
@@ -122,22 +121,23 @@ export default function ScoringPanel() {
           </div>
         ))}
 
-        {/* Responsive Fixed Footer Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t p-4 md:p-6 flex flex-col md:flex-row justify-between items-center shadow-[0_-15px_50px_rgba(0,0,0,0.1)] z-[100] gap-4">
-          <div className="flex flex-row md:flex-col items-center md:items-start gap-4 md:gap-0">
-            <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Total</p>
-            <p className="text-3xl md:text-5xl font-black text-blue-600 leading-none">
+        {/* REPAIR: Responsive Fixed Footer Bar - Compact version for laptops */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t p-3 md:p-5 flex flex-row justify-between items-center shadow-[0_-15px_50px_rgba(0,0,0,0.1)] z-[100]">
+          <div className="flex flex-col items-start pl-2 md:pl-4">
+            <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Total</p>
+            <p className="text-2xl md:text-5xl font-black text-blue-600 leading-none">
               {calculateTotal().toFixed(2)}%
             </p>
           </div>
           <button 
             onClick={handleSubmit}
             disabled={submitting}
-            className="w-full md:w-auto bg-blue-600 text-white px-12 md:px-20 py-4 rounded-2xl font-black text-base md:text-xl shadow-xl hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-blue-600 text-white px-8 md:px-20 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-xl hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 pr-2 md:mr-4"
           >
-            {submitting ? "SUBMITTING..." : "SUBMIT SCORE"}
+            {submitting ? "..." : "SUBMIT SCORE"}
           </button>
         </div>
+
       </div>
     </div>
   );
