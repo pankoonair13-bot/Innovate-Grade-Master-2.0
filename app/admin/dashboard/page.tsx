@@ -56,6 +56,22 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
+          {/* NEW CARD: Monitoring & Audit (The Tracker) */}
+          <Link href="/admin/audit" className="lg:col-span-3">
+            <div className="bg-blue-600 rounded-[2.5rem] p-8 shadow-xl border border-blue-400 flex flex-col md:flex-row items-center justify-between group hover:bg-blue-700 transition-all cursor-pointer">
+              <div className="flex items-center gap-6">
+                <span className="text-5xl">📊</span>
+                <div>
+                  <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Judge Readiness Tracker</h2>
+                  <p className="text-blue-100 text-sm font-medium mt-1">Check which booths are "Ready" and which are "Pending" marks.</p>
+                </div>
+              </div>
+              <div className="mt-6 md:mt-0 bg-white/20 px-6 py-3 rounded-2xl text-white font-black text-xs uppercase tracking-widest border border-white/10 group-hover:scale-105 transition-transform">
+                Open Audit Log →
+              </div>
+            </div>
+          </Link>
+
           {/* Card: Manage Participants */}
           <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col group hover:border-blue-200 transition-all">
             <span className="text-3xl mb-4">👥</span>
@@ -101,12 +117,11 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* DANGER ZONE SECTION */}
+          {/* MAINTENANCE TOOLS */}
           <div className="md:col-span-2 lg:col-span-3 mt-4">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 ml-4">Maintenance Tools</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {/* Reset Scores */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 flex items-center justify-between gap-4">
+              <div className="bg-white rounded-3xl p-6 border border-slate-200 flex items-center justify-between gap-4 shadow-sm">
                 <div>
                   <h4 className="font-bold text-slate-800">Clear Scores</h4>
                   <p className="text-xs text-slate-500">Keep teams, delete marks.</p>
@@ -120,8 +135,7 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              {/* Full Reset */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 flex items-center justify-between gap-4">
+              <div className="bg-white rounded-3xl p-6 border border-slate-200 flex items-center justify-between gap-4 shadow-sm">
                 <div>
                   <h4 className="font-bold text-red-600">Factory Reset</h4>
                   <p className="text-xs text-slate-500">Delete all data.</p>
