@@ -3,9 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function AdminAudit() {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [participants, setParticipants] = useState<any[]>([]);
   const [totalJudges, setTotalJudges] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchInitialData();
@@ -14,98 +14,145 @@ export default function AdminAudit() {
   async function fetchInitialData() {
     setLoading(true);
     
-    // 1. Get total number of judges (assuming they are in your 'judges' table)
+    // 1. Get total number of judges from your 'judges' table
     const { count } = await supabase.from('judges').select('*', { count: 'exact', head: true });
     setTotalJudges(count || 0);
 
-    // 2. Fetch logs
-    await fetchAuditLogs();
+    // 2. Fetch Participants and their scores using a join
+    const { data: pData } = await supabase
+      .from('participants')
+      .select(`
+        id, 
+        booth_number, 
+        project_name, 
+        scores ( judge_id, score, created_at )
+      `)
+      .order('booth_number', { ascending: true });
+
+    if (pData) setParticipants(pData);
     setLoading(false);
   }
 
-  async function fetchAuditLogs() {
-    const { data } = await supabase
-      .from('scores')
-      .select(`
-        id,
-        created_at,
-        score,
-        participants ( project_name, booth_number ),
-        judge_id
-      `)
-      .order('created_at', { ascending: false });
-
-    setLogs(data || []);
-  }
-
-  // Calculate how many participants have full marks
+  // Calculate Summary Stats
   const getSubmissionStats = () => {
-    const projectMap: { [key: string]: number } = {};
-    logs.forEach(log => {
-      const name = log.participants?.project_name;
-      projectMap[name] = (projectMap[name] || 0) + 1;
-    });
+    const totalProjects = participants.length;
+    const fullyMarked = participants.filter(p => (p.scores?.length || 0) >= totalJudges && totalJudges > 0).length;
+    const totalSubmissions = participants.reduce((acc, p) => acc + (p.scores?.length || 0), 0);
     
-    const completed = Object.values(projectMap).filter(count => count >= totalJudges).length;
-    return { completed, totalProjects: Object.keys(projectMap).length };
+    return { fullyMarked, totalProjects, totalSubmissions };
   };
 
-  const { completed, totalProjects } = getSubmissionStats();
+  const { fullyMarked, totalProjects, totalSubmissions } = getSubmissionStats();
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white p-4 md:p-8">
+    <div className="min-h-screen bg-[#0f172a] text-white p-4 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto">
         
-        {/* Completion Dashboard */}
+        {/* Header */}
+        <div className="mb-10 flex justify-between items-end">
+          <div className="border-l-4 border-blue-500 pl-6">
+            <h1 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">
+              Control <span className="text-blue-500">Center</span>
+            </h1>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.4em] mt-1">
+              EDIAs 2026 Admin Portal
+            </p>
+          </div>
+          <button 
+            onClick={fetchInitialData}
+            className="bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+          >
+            {loading ? "REFRESHING..." : "🔄 SYNC DATA"}
+          </button>
+        </div>
+
+        {/* 1. Completion Dashboard (From your old code) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-blue-600/10 border border-blue-500/20 p-6 rounded-[2rem]">
+          <div className="bg-blue-600/10 border border-blue-500/20 p-6 rounded-[2rem] shadow-xl">
             <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-2">Total Judges</p>
             <p className="text-4xl font-black">{totalJudges}</p>
           </div>
-          <div className="bg-emerald-600/10 border border-emerald-500/20 p-6 rounded-[2rem]">
-            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mb-2">Projects Fully Marked</p>
-            <p className="text-4xl font-black">{completed} / {totalProjects || 0}</p>
+          <div className="bg-emerald-600/10 border border-emerald-500/20 p-6 rounded-[2rem] shadow-xl">
+            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mb-2">Fully Marked</p>
+            <p className="text-4xl font-black text-emerald-400">{fullyMarked} / {totalProjects}</p>
           </div>
-          <div className="bg-purple-600/10 border border-purple-500/20 p-6 rounded-[2rem]">
+          <div className="bg-purple-600/10 border border-purple-500/20 p-6 rounded-[2rem] shadow-xl">
             <p className="text-[10px] font-black uppercase tracking-widest text-purple-400 mb-2">Total Submissions</p>
-            <p className="text-4xl font-black">{logs.length}</p>
+            <p className="text-4xl font-black">{totalSubmissions}</p>
           </div>
         </div>
 
-        {/* Audit Table */}
-        <div className="bg-[#1e293b]/40 border border-white/5 rounded-[2rem] overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-slate-800/50 border-b border-white/5">
-              <tr>
-                <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Time</th>
-                <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Judge</th>
-                <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Project</th>
-                <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Score</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {logs.map((log) => (
-                <tr key={log.id} className="hover:bg-white/5 transition-all">
-                  <td className="p-6 text-xs text-slate-400 font-bold">
-                    {new Date(log.created_at).toLocaleTimeString()}
-                  </td>
-                  <td className="p-6">
-                    <span className="bg-slate-700 px-3 py-1 rounded-lg font-mono text-[10px]">
-                      {log.judge_id.substring(0, 8)}
+        {/* 2. Ready vs Pending List (Combined View) */}
+        <div className="space-y-4">
+          <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4 px-2">Booth Readiness Status</h2>
+          
+          {participants.map((p) => {
+            const count = p.scores?.length || 0;
+            const isReady = count >= totalJudges && totalJudges > 0;
+            const missing = totalJudges - count;
+
+            return (
+              <div 
+                key={p.id} 
+                className={`group flex flex-col md:flex-row items-center justify-between p-5 rounded-3xl border transition-all duration-300 ${
+                  isReady 
+                    ? 'bg-emerald-500/5 border-emerald-500/20' 
+                    : 'bg-slate-800/40 border-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-6 w-full md:w-auto">
+                  {/* Booth Number Avatar */}
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg transition-transform group-hover:scale-110 ${
+                    isReady ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]' : 'bg-slate-700 text-slate-400'
+                  }`}>
+                    {p.booth_number}
+                  </div>
+                  
+                  {/* Project Info */}
+                  <div>
+                    <h3 className="font-bold text-sm md:text-base uppercase tracking-tight leading-tight">
+                      {p.project_name}
+                    </h3>
+                    <div className="flex items-center gap-3 mt-1">
+                      <div className="flex -space-x-2">
+                         {/* Visual indicator of judge slots */}
+                         {[...Array(totalJudges)].map((_, i) => (
+                           <div key={i} className={`w-3 h-3 rounded-full border border-[#0f172a] ${i < count ? 'bg-blue-500' : 'bg-slate-600'}`} />
+                         ))}
+                      </div>
+                      <p className="text-[10px] font-black text-slate-500 uppercase">
+                        {count} of {totalJudges} Judges
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Badge */}
+                <div className="mt-4 md:mt-0 w-full md:w-auto flex flex-col items-center md:items-end gap-2">
+                  {isReady ? (
+                    <span className="bg-emerald-500 text-white text-[9px] font-black px-5 py-2 rounded-xl uppercase tracking-widest">
+                      ✅ Ready for Result
                     </span>
-                  </td>
-                  <td className="p-6">
-                    <p className="font-black uppercase text-sm">{log.participants?.project_name}</p>
-                    <p className="text-[10px] text-emerald-500 font-bold">BOOTH {log.participants?.booth_number}</p>
-                  </td>
-                  <td className="p-6 text-right">
-                    <span className="text-xl font-black text-blue-400">{log.score.toFixed(2)}%</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  ) : (
+                    <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 text-[9px] font-black px-5 py-2 rounded-xl uppercase tracking-widest">
+                      ⏳ Pending {missing} More
+                    </span>
+                  )}
+                  
+                  {/* Quick Preview of existing scores for this project */}
+                  <div className="flex gap-1">
+                    {p.scores?.map((s: any, idx: number) => (
+                      <div key={idx} className="bg-white/5 px-2 py-1 rounded text-[8px] font-mono text-slate-400">
+                        {s.score.toFixed(0)}%
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
+
       </div>
     </div>
   );
