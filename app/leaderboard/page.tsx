@@ -2,11 +2,16 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
-// Define the 9 official themes for filtering
+// Updated with your specific Malaysian Competition Themes
 const THEMES = [
-  "General", "IoT & Smart Systems", "Green Technology", 
-  "Education", "Health & Wellness", "Cybersecurity", 
-  "Robotics", "FinTech", "Social Innovation"
+  "TEMA 1: PERTANIAN PINTAR ATAU TEKNOLOGI MAKANAN",
+  "TEMA 3: KEBUDAYAAN DAN KESENIAN ATAU PELANCONGAN DAN HOSPITALITI",
+  "TEMA 4: TEKNOLOGI HIJAU ATAU TENAGA BOLEH DIPERBAHARUI",
+  "TEMA 5: PENGURUSAN ATAU PERKHIDMATAN PERNIAGAAN",
+  "TEMA 6: PENJAGAAN KESIHATAN ATAU KESELAMATAN",
+  "TEMA 7: PENGAJARAN DAN PEMBELAJARAN",
+  "TEMA 8: SISTEM KECERDASAN A.I DAN PEMBUATAN PINTAR",
+  "TEMA 9: PENGANGKUTAN ATAU APLIKASI SISTEM RENDAH KARBON"
 ];
 
 export default function Leaderboard() {
@@ -16,7 +21,7 @@ export default function Leaderboard() {
 
   useEffect(() => {
     fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 15000);
+    const interval = setInterval(fetchLeaderboard, 15000); // Auto-refresh every 15s
     return () => clearInterval(interval);
   }, []);
 
@@ -32,7 +37,9 @@ export default function Leaderboard() {
           ? p.scores.reduce((acc: number, s: any) => acc + s.score, 0) / p.scores.length 
           : 0
       })).sort((a, b) => {
+        // 1. Sort by high score
         if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+        // 2. Tie-breaker: Booth number
         return a.booth_number.localeCompare(b.booth_number, undefined, { numeric: true, sensitivity: 'base' });
       });
       setStandings(processed);
@@ -63,6 +70,7 @@ export default function Leaderboard() {
             color: black !important; 
             border: 1px solid #eee !important;
             page-break-inside: avoid; 
+            padding: 20px !important;
           }
           .medal-print { border: 2px solid #000 !important; color: black !important; background: none !important; }
         }
@@ -70,23 +78,23 @@ export default function Leaderboard() {
 
       <div className="max-w-6xl mx-auto">
         
-        {/* Responsive Header with Theme Filter */}
+        {/* Header with Theme Filter */}
         <div className="flex flex-col lg:flex-row justify-between items-center mb-8 md:mb-12 gap-6 no-print">
           <div className="border-l-0 md:border-l-4 border-blue-600 md:pl-6 text-center md:text-left">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black italic tracking-tighter text-blue-500 uppercase leading-none">
-              {selectedTheme === "All" ? "Live Standings" : selectedTheme}
+              {selectedTheme === "All" ? "Live Standings" : "Theme Ranking"}
             </h1>
             <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-3">EDIAs 2026 Official Rankings</p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-3">
-            {/* Theme Selector Dropdown */}
+            {/* Custom Theme Selector Dropdown */}
             <select 
-              className="bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-2xl outline-none cursor-pointer hover:bg-white/10 transition-all"
+              className="bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-2xl outline-none cursor-pointer hover:bg-white/10 transition-all max-w-[280px]"
               value={selectedTheme}
               onChange={(e) => setSelectedTheme(e.target.value)}
             >
-              <option value="All" className="bg-slate-900">All Themes</option>
+              <option value="All" className="bg-slate-900">All Categories</option>
               {THEMES.map(t => (
                 <option key={t} value={t} className="bg-slate-900">{t}</option>
               ))}
@@ -104,6 +112,15 @@ export default function Leaderboard() {
             </button>
           </div>
         </div>
+
+        {/* Display selected theme name as title for the printed report */}
+        {selectedTheme !== "All" && (
+          <div className="mb-6 p-4 bg-blue-600/10 border border-blue-500/20 rounded-2xl text-center">
+            <h2 className="text-blue-400 font-black uppercase text-xs tracking-widest">
+              {selectedTheme}
+            </h2>
+          </div>
+        )}
 
         {/* Filtered Rankings List */}
         <div className="space-y-5">
@@ -130,7 +147,7 @@ export default function Leaderboard() {
                       {item.program || 'N/A'}
                     </span>
                     <span className="bg-purple-500/20 text-purple-400 text-[9px] font-black px-3 py-1 rounded-lg border border-purple-500/20 uppercase tracking-widest">
-                      Theme: {item.theme || 'General'}
+                      {item.theme}
                     </span>
                   </div>
                   
@@ -156,8 +173,8 @@ export default function Leaderboard() {
               </div>
             ))
           ) : (
-            <div className="text-center py-20 opacity-50 font-black uppercase tracking-widest">
-              No projects found in this theme
+            <div className="text-center py-20 opacity-30 font-black uppercase tracking-widest">
+              Tiada Projek Dijumpai Untuk Tema Ini
             </div>
           )}
         </div>
