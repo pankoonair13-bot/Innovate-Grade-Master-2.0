@@ -8,9 +8,15 @@ export default function ScoringPanel() {
   const [selectedId, setSelectedId] = useState('');
   const [marks, setMarks] = useState<{ [key: number]: number }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     async function loadData() {
+      // 1. Get current Judge session
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+
+      // 2. Fetch projects and criteria
       const { data: pData } = await supabase.from('participants').select('*').order('booth_number');
       const { data: cData } = await supabase.from('criteria').select('*').order('display_order');
       
@@ -31,11 +37,28 @@ export default function ScoringPanel() {
 
   const handleSubmit = async () => {
     if (!selectedId) return alert("Please select a project first!");
-    
+    if (!user) return alert("Session expired. Please log in again.");
+
     setSubmitting(true);
     try {
+      // 3. Check for existing submission by this judge for this participant
+      const { data: existingScore } = await supabase
+        .from('scores')
+        .select('id')
+        .eq('participant_id', parseInt(selectedId))
+        .eq('judge_id', user.id)
+        .single();
+
+      if (existingScore) {
+        alert("❌ You have already submitted marks for this participant!");
+        setSubmitting(false);
+        return;
+      }
+
+      // 4. Insert score with judge tracking
       const { error } = await supabase.from('scores').insert([{
         participant_id: parseInt(selectedId),
+        judge_id: user.id, // Identify which judge filled the marks
         score: calculateTotal(),
         breakdown: marks
       }]);
@@ -53,14 +76,22 @@ export default function ScoringPanel() {
   };
 
   return (
-    /* REPAIR: pb-[500px] creates massive empty space at the bottom 
-       so Section C can be scrolled completely clear of the footer on laptops */
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6 pb-[500px] font-sans">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6 pb-[500px] font-sans text-slate-900">
       <div className="max-w-3xl mx-auto">
         
-        <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-6 md:mb-8 uppercase tracking-tight text-center md:text-left">
-          EDIAs 2026 <span className="text-blue-600">Scoring</span>
-        </h1>
+        {/* Header with Judge Info */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-2 text-center md:text-left">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight">
+              EDIAs 2026 <span className="text-blue-600">Scoring</span>
+            </h1>
+            {user && (
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                Logged in as: <span className="text-blue-500">{user.email?.split('@')[0]}</span>
+              </p>
+            )}
+          </div>
+        </div>
 
         {/* Project Selector Card */}
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-2 border-blue-100 mb-6 md:mb-8">
@@ -98,7 +129,6 @@ export default function ScoringPanel() {
                     </span>
                   </div>
                   
-                  {/* Score Button Layout - Optimized for Tap targets */}
                   <div className="grid grid-cols-5 md:flex md:justify-between gap-2">
                     {[1,2,3,4,5,6,7,8,9,10].map(num => (
                       <button
@@ -121,7 +151,7 @@ export default function ScoringPanel() {
           </div>
         ))}
 
-        {/* REPAIR: Responsive Fixed Footer Bar - Compact version for laptops */}
+        {/* Fixed Footer Bar */}
         <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t p-3 md:p-5 flex flex-row justify-between items-center shadow-[0_-15px_50px_rgba(0,0,0,0.1)] z-[100]">
           <div className="flex flex-col items-start pl-2 md:pl-4">
             <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Total</p>
@@ -132,7 +162,7 @@ export default function ScoringPanel() {
           <button 
             onClick={handleSubmit}
             disabled={submitting}
-            className="bg-blue-600 text-white px-8 md:px-20 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-xl hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 pr-2 md:mr-4"
+            className="bg-blue-600 text-white px-8 md:px-20 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-xl hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 md:mr-4"
           >
             {submitting ? "..." : "SUBMIT SCORE"}
           </button>
