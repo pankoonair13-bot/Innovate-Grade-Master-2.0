@@ -3,123 +3,114 @@ import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
-export default function Login() {
+export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setErrorMsg('');
 
-    // 💡 The Trick: Turn the clean username into a fake email format for Supabase!
-    const fakeEmail = `${username.trim().toLowerCase()}@event.com`;
+    // 💡 TRICK: Convert username to the hidden email format used during creation
+    const email = username.includes('@') ? username : `${username.trim()}@master.com`;
 
     try {
-      // 1. Log in with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: fakeEmail,
-        password: password,
+      // 1. Authenticate with Supabase
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      if (authError) {
-        setError("Invalid username or password.");
-        setLoading(false);
-        return;
-      }
+      if (authError) throw new Error("Invalid username or password.");
 
-      const userId = authData.user?.id;
+      if (data.user) {
+        // 2. Fetch the user's role from the 'profiles' table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .maybeSingle();
 
-      // 2. Safely read the role from the database profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
+        if (profileError) throw new Error("Database connection error.");
 
-      // 💡 PLAN B: If there's a database error (like a 500 connection error), 
-      // let the hardcoded 'pankoo' in as an admin anyway!
-      if (profileError || !profile?.role) {
-        if (username.trim().toLowerCase() === 'pankoo') {
-          router.push('/');
-          return;
+        // 3. Route based on the assigned role
+        if (!profile) {
+          setErrorMsg("No role assigned to this user. Contact Admin.");
+        } else if (profile.role === 'admin') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/scoring');
         }
-        
-        setError("No role assigned to this user. Contact Admin.");
-        setLoading(false);
-        return;
       }
-
-      // 3. 🚀 Success! Send everyone straight to the centralized dashboard menu on the homepage
-      router.push('/');
-
-    } catch (err) {
-      console.error(err);
-      setError("An unexpected error occurred.");
+    } catch (err: any) {
+      setErrorMsg(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
+      <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100 w-full max-w-sm">
         
-        {/* LOGO & TITLE */}
-        <div className="text-center mb-6">
-          <div className="text-blue-600 bg-blue-50 w-12 h-12 flex items-center justify-center rounded-xl font-bold text-2xl mx-auto mb-3">🏆</div>
-          <h1 className="text-3xl font-bold text-gray-900">Grade Master 2.0</h1>
-          <p className="text-sm text-gray-500 mt-1">Please sign in with your username</p>
+        <div className="text-center mb-8">
+          <div className="bg-blue-600 text-white w-12 h-12 flex items-center justify-center rounded-2xl text-xl font-black mx-auto mb-4 shadow-lg shadow-blue-100">
+            G
+          </div>
+          <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">
+            Grade <span className="text-blue-600">Master 2.0</span>
+          </h1>
+          <p className="text-slate-400 text-[10px] font-bold mt-2 uppercase tracking-[0.2em]">
+            Competition Portal
+          </p>
         </div>
 
-        {/* ERROR BOX */}
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 text-center border border-red-100">
-            {error}
+        {errorMsg && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl">
+            <p className="text-red-600 text-xs font-bold text-center">{errorMsg}</p>
           </div>
         )}
 
-        {/* LOGIN FORM */}
-        <form onSubmit={handleLogin} className="space-y-5">
-          
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Username</label>
+            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Username</label>
             <input 
-              type="text"
-              placeholder="e.g., pankoo or judge1"
-              className="w-full mt-1 p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-              value={username}
+              type="text" 
+              required 
+              placeholder="e.g. judge1"
+              className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white focus:ring-0 transition-all font-bold text-slate-700 outline-none"
+              value={username} 
               onChange={(e) => setUsername(e.target.value)}
-              required
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700">Password</label>
+            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Password</label>
             <input 
-              type="password"
+              type="password" 
+              required 
               placeholder="••••••••"
-              className="w-full mt-1 p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-              value={password}
+              className="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white focus:ring-0 transition-all font-bold text-slate-700 outline-none"
+              value={password} 
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
           </div>
 
           <button 
-            type="submit"
             disabled={loading}
-            className={`w-full text-white p-3 rounded-lg font-medium transition ${
-              loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4 disabled:opacity-50 disabled:active:scale-100"
           >
-            {loading ? 'Signing In...' : 'Sign In'}
+            {loading ? "Verifying..." : "Sign In"}
           </button>
-          
         </form>
+
+        <p className="text-center text-[9px] text-slate-300 font-bold uppercase tracking-widest mt-8">
+          Authorized Personnel Only
+        </p>
       </div>
     </div>
   );

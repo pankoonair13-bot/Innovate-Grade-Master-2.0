@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 export default function CreateJudge() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -17,41 +16,30 @@ export default function CreateJudge() {
     const judgeEmail = `${username.trim()}@master.com`;
 
     try {
-      // 1. Create the account in Supabase Authentication
+      // 1. Create the Auth User
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: judgeEmail,
         password: password,
-        options: {
-          data: {
-            full_name: name, // This saves to the Auth metadata as a backup
-            role: 'judge'
-          }
-        }
       });
 
       if (authError) throw authError;
 
-      // 2. Add to profiles table - using a more flexible approach
+      // 2. Insert into profiles with ONLY the ID and ROLE
+      // This avoids the 'full_name' or 'email' column errors
       const { error: profileError } = await supabase.from('profiles').insert([
         { 
           id: authData.user?.id, 
-          role: 'judge'
-          // 💡 We will leave 'full_name' out for a second to see if it works
+          role: 'judge' 
         }
       ]);
 
-      // If the insert above fails, it's a table column name issue
-      if (profileError) {
-        console.error("Profile Insert Error:", profileError);
-        alert("Account created, but could not save profile details. Check your Supabase table column names.");
-      } else {
-        alert(`✅ Judge "${username}" created successfully!`);
-      }
+      if (profileError) throw profileError;
 
+      alert(`✅ Judge "${username}" created!`);
       router.push('/admin/dashboard');
       
     } catch (err: any) {
-      alert("❌ Critical Error: " + err.message);
+      alert("❌ Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -63,22 +51,17 @@ export default function CreateJudge() {
         <h1 className="text-2xl font-black text-slate-900 uppercase italic mb-6">Assign <span className="text-purple-600">Judge</span></h1>
         <form onSubmit={handleCreate} className="space-y-4">
           <input 
-            type="text" required placeholder="Display Name (e.g. Divena)" 
-            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-purple-500"
-            value={name} onChange={(e) => setName(e.target.value)} 
-          />
-          <input 
-            type="text" required placeholder="Username (e.g. judge1)" 
-            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-purple-500"
+            type="text" required placeholder="Username" 
+            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold"
             value={username} onChange={(e) => setUsername(e.target.value)} 
           />
           <input 
             type="password" required placeholder="Password" 
-            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-purple-500"
+            className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold"
             value={password} onChange={(e) => setPassword(e.target.value)} 
           />
-          <button disabled={loading} className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black uppercase text-xs shadow-lg active:scale-95 transition-all">
-            {loading ? "Creating..." : "Create Judge Account"}
+          <button disabled={loading} className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black uppercase text-xs shadow-lg">
+            {loading ? "Creating..." : "Confirm Account"}
           </button>
         </form>
       </div>
