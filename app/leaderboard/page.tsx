@@ -13,7 +13,7 @@ const THEMES = [
   "TEMA 9: PENGANGKUTAN ATAU APLIKASI SISTEM RENDAH KARBON"
 ];
 
-const PROGRAMMES = ['ALL', 'DEE', 'DET', 'DKM', 'DDT'];
+const PROGRAMMES = ['ALL', 'DEP', 'DET','DTK'];
 
 export default function Leaderboard() {
   const [standings, setStandings] = useState<any[]>([]);
