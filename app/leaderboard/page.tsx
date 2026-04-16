@@ -13,13 +13,15 @@ const THEMES = [
   "TEMA 9: PENGANGKUTAN ATAU APLIKASI SISTEM RENDAH KARBON"
 ];
 
-const PROGRAMMES = ['ALL', 'DEE', 'DET', 'DKM', 'DDT'];
+const PROGRAMMES = ['ALL', 'DEE', 'DET', 'DTK'];
+const MEDAL_TYPES = ['ALL', 'EMAS', 'PERAK', 'GANGSA', 'SIJIL'];
 
 export default function Leaderboard() {
   const [standings, setStandings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTheme, setSelectedTheme] = useState<string>("All");
   const [selectedProg, setSelectedProg] = useState<string>("ALL");
+  const [selectedMedal, setSelectedMedal] = useState<string>("ALL");
 
   useEffect(() => {
     fetchLeaderboard();
@@ -33,12 +35,19 @@ export default function Leaderboard() {
       .select(`id, booth_number, project_name, team_name, program, theme, scores ( score )`);
 
     if (data) {
-      const processed = data.map(p => ({
-        ...p,
-        finalScore: p.scores && p.scores.length > 0 
+      const processed = data.map(p => {
+        const avg = p.scores && p.scores.length > 0 
           ? p.scores.reduce((acc: number, s: any) => acc + s.score, 0) / p.scores.length 
-          : 0
-      })).sort((a, b) => {
+          : 0;
+        
+        // Determine Category for Filtering
+        let category = "SIJIL";
+        if (avg >= 80) category = "EMAS";
+        else if (avg >= 70) category = "PERAK";
+        else if (avg >= 60) category = "GANGSA";
+
+        return { ...p, finalScore: avg, category };
+      }).sort((a, b) => {
         if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
         return a.booth_number.localeCompare(b.booth_number, undefined, { numeric: true, sensitivity: 'base' });
       });
@@ -47,11 +56,13 @@ export default function Leaderboard() {
     setLoading(false);
   }
 
+  // Combined Triple Filter
   const filteredStandings = standings.filter(p => {
     const themeMatch = selectedTheme === "All" || p.theme === selectedTheme;
     const progMatch = selectedProg === "ALL" || 
                      (p.program && p.program.toUpperCase() === selectedProg.toUpperCase());
-    return themeMatch && progMatch;
+    const medalMatch = selectedMedal === "ALL" || p.category === selectedMedal;
+    return themeMatch && progMatch && medalMatch;
   });
 
   const getMedalStyles = (score: number) => {
@@ -76,11 +87,7 @@ export default function Leaderboard() {
             margin-bottom: 12px !important;
             border-radius: 20px !important;
           }
-          /* Ensure colors show up in print */
-          .medal-box { 
-            print-color-adjust: exact; 
-            -webkit-print-color-adjust: exact;
-          }
+          .medal-box { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
         }
       `}</style>
 
@@ -105,10 +112,12 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* Filter Bar (Hidden in Print) */}
-        <div className="bg-slate-900/60 border border-white/5 p-6 rounded-[2.5rem] mb-10 no-print space-y-6">
-          <div className="flex flex-col md:flex-row gap-6 items-center">
-            <div className="w-full md:w-1/2">
+        {/* 🔘 TRIPLE FILTER BAR */}
+        <div className="bg-slate-900/60 border border-white/5 p-6 rounded-[2.5rem] mb-10 no-print">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            
+            {/* Theme Dropdown */}
+            <div className="w-full">
               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-2">Filter by Theme</label>
               <select 
                 className="w-full bg-[#0f172a] border border-white/10 text-[10px] font-black uppercase tracking-widest px-4 py-4 rounded-2xl outline-none"
@@ -119,30 +128,52 @@ export default function Leaderboard() {
                 {THEMES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
-            <div className="w-full md:w-1/2">
-              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-2">Program Filter</label>
-              <div className="flex flex-wrap gap-2">
-                {PROGRAMMES.map((prog) => (
-                  <button
-                    key={prog}
-                    onClick={() => setSelectedProg(prog)}
-                    className={`px-5 py-3 rounded-xl text-[10px] font-black transition-all border ${
-                      selectedProg === prog ? 'bg-blue-600 border-blue-500 text-white' : 'bg-[#0f172a] border-white/10 text-slate-400'
-                    }`}
-                  >
-                    {prog}
-                  </button>
-                ))}
+
+            {/* Program & Medal Button Groups */}
+            <div className="space-y-6">
+              <div>
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-2">Program</label>
+                <div className="flex flex-wrap gap-2">
+                  {PROGRAMMES.map((prog) => (
+                    <button
+                      key={prog}
+                      onClick={() => setSelectedProg(prog)}
+                      className={`px-4 py-3 rounded-xl text-[9px] font-black transition-all border ${
+                        selectedProg === prog ? 'bg-blue-600 border-blue-500 text-white shadow-lg' : 'bg-[#0f172a] border-white/10 text-slate-400'
+                      }`}
+                    >
+                      {prog}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-2">Medal Status</label>
+                <div className="flex flex-wrap gap-2">
+                  {MEDAL_TYPES.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setSelectedMedal(m)}
+                      className={`px-4 py-3 rounded-xl text-[9px] font-black transition-all border ${
+                        selectedMedal === m ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-[#0f172a] border-white/10 text-slate-400'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+
           </div>
         </div>
 
-        {/* Print Title (Shows only when printing) */}
+        {/* Print Title */}
         <div className="hidden print:block text-center mb-10">
            <h1 className="text-2xl font-black uppercase tracking-widest">EDIAs 2026 OFFICIAL RANKINGS</h1>
-           <p className="text-sm font-bold mt-2">
-             {selectedTheme === "All" ? "ALL THEMES" : selectedTheme} | {selectedProg === "ALL" ? "ALL PROGRAMMES" : selectedProg}
+           <p className="text-sm font-bold mt-2 opacity-70">
+             {selectedTheme} | {selectedProg} | {selectedMedal}
            </p>
         </div>
 
@@ -167,7 +198,6 @@ export default function Leaderboard() {
               <div className="shrink-0 w-full md:w-48 text-center md:text-right md:border-l border-white/10 md:pl-8">
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 no-print">Total Average</p>
                 <div className={`medal-box inline-block w-full md:min-w-[140px] px-6 py-4 rounded-2xl border-2 font-black text-xl transition-all ${getMedalStyles(item.finalScore)}`}>
-                  {/* The score percentage is hidden during printing, but the colored box stays */}
                   <span className="no-print">{item.finalScore.toFixed(2)}%</span>
                   <span className="hidden print:inline">
                     {item.finalScore >= 80 ? "🥇 EMAS" : item.finalScore >= 70 ? "🥈 PERAK" : item.finalScore >= 60 ? "🥉 GANGSA" : "SIJIL"}
@@ -176,6 +206,12 @@ export default function Leaderboard() {
               </div>
             </div>
           ))}
+
+          {filteredStandings.length === 0 && (
+            <div className="text-center py-20 opacity-30 font-black uppercase tracking-widest">
+              No results found for these filters
+            </div>
+          )}
         </div>
       </div>
     </div>
