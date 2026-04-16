@@ -6,11 +6,11 @@ const THEMES = [
   "TEMA 1: PERTANIAN PINTAR ATAU TEKNOLOGI MAKANAN",
   "TEMA 3: KEBUDAYAAN DAN KESENIAN ATAU PELANCONGAN DAN HOSPITALITI",
   "TEMA 4: TEKNOLOGI HIJAU ATAU TENAGA BOLEH DIPERBAHARUI",
-  "TEMA 5: PENGURUSAN ATAU PERKHIDMATAN PERNIAGAAN",
-  "TEMA 6: PENJAGAAN KESIHATAN ATAU KESELAMATAN",
-  "TEMA 7: PENGAJARAN DAN PEMBELAJARAN",
+  "TEMA 5: PENGURUSAN ATAU PERKHIDMATAN PERNIAGAAN",
+  "TEMA 6: PENJAGAAN KESIHATAN ATAU KESELAMATAN",
+  "TEMA 7: PENGAJARAN DAN PEMBELAJARAN",
   "TEMA 8: SISTEM KECERDASAN A.I DAN PEMBUATAN PINTAR",
-  "TEMA 9: PENGANGKUTAN ATAU APLIKASI SISTEM RENDAH KARBON"
+  "TEMA 9: PENGANGKUTAN ATAU APLIKASI SISTEM RENDAH KARBON"
 ];
 
 const PROGRAMMES = ['ALL', 'DEE', 'DET', 'DTK'];
@@ -30,9 +30,10 @@ export default function Leaderboard() {
   }, []);
 
   async function fetchLeaderboard() {
+    // UPDATED QUERY: Included supervisor_name
     const { data } = await supabase
       .from('participants')
-      .select(`id, booth_number, project_name, team_name, program, theme, scores ( score )`);
+      .select(`id, booth_number, project_name, team_name, supervisor_name, program, theme, scores ( score )`);
 
     if (data) {
       const processed = data.map(p => {
@@ -40,7 +41,6 @@ export default function Leaderboard() {
           ? p.scores.reduce((acc: number, s: any) => acc + s.score, 0) / p.scores.length 
           : 0;
         
-        // Determine Category for Filtering
         let category = "SIJIL";
         if (avg >= 80) category = "EMAS";
         else if (avg >= 70) category = "PERAK";
@@ -56,7 +56,6 @@ export default function Leaderboard() {
     setLoading(false);
   }
 
-  // Combined Triple Filter
   const filteredStandings = standings.filter(p => {
     const themeMatch = selectedTheme === "All" || p.theme === selectedTheme;
     const progMatch = selectedProg === "ALL" || 
@@ -116,7 +115,6 @@ export default function Leaderboard() {
         <div className="bg-slate-900/60 border border-white/5 p-6 rounded-[2.5rem] mb-10 no-print">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             
-            {/* Theme Dropdown */}
             <div className="w-full">
               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-2">Filter by Theme</label>
               <select 
@@ -129,7 +127,6 @@ export default function Leaderboard() {
               </select>
             </div>
 
-            {/* Program & Medal Button Groups */}
             <div className="space-y-6">
               <div>
                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-2">Program</label>
@@ -165,11 +162,9 @@ export default function Leaderboard() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
-        {/* Print Title */}
         <div className="hidden print:block text-center mb-10">
            <h1 className="text-2xl font-black uppercase tracking-widest">EDIAs 2026 OFFICIAL RANKINGS</h1>
            <p className="text-sm font-bold mt-2 opacity-70">
@@ -177,7 +172,6 @@ export default function Leaderboard() {
            </p>
         </div>
 
-        {/* Standings List */}
         <div className="space-y-4">
           {filteredStandings.map((item, index) => (
             <div key={item.id} className="standings-row flex flex-col md:flex-row items-center gap-6 p-6 rounded-[2.5rem] border bg-[#1e293b]/40 border-white/5">
@@ -192,7 +186,16 @@ export default function Leaderboard() {
                   <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-black px-3 py-1 rounded-lg border border-emerald-500/20 uppercase">{item.program || 'N/A'}</span>
                 </div>
                 <h2 className="text-lg font-black text-white uppercase tracking-tight mb-1">{item.project_name}</h2>
-                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Team: <span className="text-blue-400">{item.team_name}</span></p>
+                
+                {/* TEAM & SUPERVISOR SECTION */}
+                <div className="space-y-1">
+                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                    Team: <span className="text-blue-400">{item.team_name}</span>
+                  </p>
+                  <p className="text-slate-500 text-[9px] font-bold uppercase tracking-[0.2em]">
+                    SV: <span className="text-slate-300">{item.supervisor_name || 'No Supervisor'}</span>
+                  </p>
+                </div>
               </div>
 
               <div className="shrink-0 w-full md:w-48 text-center md:text-right md:border-l border-white/10 md:pl-8">
