@@ -13,7 +13,8 @@ const THEMES = [
   "TEMA 9: PENGANGKUTAN ATAU APLIKASI SISTEM RENDAH KARBON"
 ];
 
-const PROGRAMMES = ['ALL', 'DEE', 'DET', 'DTK'];
+// UPDATED: Matches your screenshot filters (DEP, DET, DTK)
+const PROGRAMMES = ['ALL', 'DEP', 'DET', 'DTK'];
 const MEDAL_TYPES = ['ALL', 'EMAS', 'PERAK', 'GANGSA', 'SIJIL'];
 
 export default function Leaderboard() {
@@ -30,15 +31,15 @@ export default function Leaderboard() {
   }, []);
 
   async function fetchLeaderboard() {
-    // UPDATED QUERY: Included supervisor_name
     const { data } = await supabase
       .from('participants')
       .select(`id, booth_number, project_name, team_name, supervisor_name, program, theme, scores ( score )`);
 
     if (data) {
       const processed = data.map(p => {
-        const avg = p.scores && p.scores.length > 0 
-          ? p.scores.reduce((acc: number, s: any) => acc + s.score, 0) / p.scores.length 
+        const scoresArray = p.scores || [];
+        const avg = scoresArray.length > 0 
+          ? scoresArray.reduce((acc: number, s: any) => acc + s.score, 0) / scoresArray.length 
           : 0;
         
         let category = "SIJIL";
@@ -49,18 +50,22 @@ export default function Leaderboard() {
         return { ...p, finalScore: avg, category };
       }).sort((a, b) => {
         if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
-        return a.booth_number.localeCompare(b.booth_number, undefined, { numeric: true, sensitivity: 'base' });
+        return a.booth_number.localeCompare(b.booth_number, undefined, { numeric: true });
       });
       setStandings(processed);
     }
     setLoading(false);
   }
 
+  // FIXED FILTER: Uses toLowerCase() to ensure matching works regardless of DB casing
   const filteredStandings = standings.filter(p => {
     const themeMatch = selectedTheme === "All" || p.theme === selectedTheme;
+    
     const progMatch = selectedProg === "ALL" || 
-                     (p.program && p.program.toUpperCase() === selectedProg.toUpperCase());
+      (p.program && p.program.toLowerCase() === selectedProg.toLowerCase());
+    
     const medalMatch = selectedMedal === "ALL" || p.category === selectedMedal;
+    
     return themeMatch && progMatch && medalMatch;
   });
 
@@ -86,39 +91,35 @@ export default function Leaderboard() {
             margin-bottom: 12px !important;
             border-radius: 20px !important;
           }
-          .medal-box { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
         }
       `}</style>
 
       <div className="max-w-6xl mx-auto">
-        
-        {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-center mb-8 gap-6 no-print">
-          <div className="border-l-0 md:border-l-4 border-blue-600 md:pl-6 text-center md:text-left">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black italic tracking-tighter text-blue-500 uppercase leading-none">
+          <div className="border-l-4 border-blue-600 pl-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black italic tracking-tighter text-blue-500 uppercase">
               Live <span className="text-white">Standings</span>
             </h1>
             <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-3">EDIAs 2026 Rankings</p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-3">
-            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95">
-              🖨️ Print Clean List
+          <div className="flex gap-3">
+            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg">
+              🖨️ Print Report
             </button>
-            <button onClick={fetchLeaderboard} className="bg-white/5 hover:bg-white/10 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10">
+            <button onClick={fetchLeaderboard} className="bg-white/5 hover:bg-white/10 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/10">
               {loading ? "..." : "🔄 Refresh"}
             </button>
           </div>
         </div>
 
-        {/* 🔘 TRIPLE FILTER BAR */}
+        {/* Filter Bar */}
         <div className="bg-slate-900/60 border border-white/5 p-6 rounded-[2.5rem] mb-10 no-print">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-            
-            <div className="w-full">
-              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-2">Filter by Theme</label>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Filter by Theme</label>
               <select 
-                className="w-full bg-[#0f172a] border border-white/10 text-[10px] font-black uppercase tracking-widest px-4 py-4 rounded-2xl outline-none"
+                className="w-full bg-[#0f172a] border border-white/10 text-[10px] font-black uppercase px-4 py-4 rounded-2xl outline-none"
                 value={selectedTheme}
                 onChange={(e) => setSelectedTheme(e.target.value)}
               >
@@ -127,16 +128,16 @@ export default function Leaderboard() {
               </select>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
-                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-2">Program</label>
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Program</label>
                 <div className="flex flex-wrap gap-2">
                   {PROGRAMMES.map((prog) => (
                     <button
                       key={prog}
                       onClick={() => setSelectedProg(prog)}
-                      className={`px-4 py-3 rounded-xl text-[9px] font-black transition-all border ${
-                        selectedProg === prog ? 'bg-blue-600 border-blue-500 text-white shadow-lg' : 'bg-[#0f172a] border-white/10 text-slate-400'
+                      className={`px-4 py-2 rounded-xl text-[9px] font-black border transition-all ${
+                        selectedProg === prog ? 'bg-blue-600 border-blue-500 text-white' : 'bg-[#0f172a] border-white/10 text-slate-400'
                       }`}
                     >
                       {prog}
@@ -144,16 +145,15 @@ export default function Leaderboard() {
                   ))}
                 </div>
               </div>
-
               <div>
-                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-2">Medal Status</label>
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Medal Status</label>
                 <div className="flex flex-wrap gap-2">
                   {MEDAL_TYPES.map((m) => (
                     <button
                       key={m}
                       onClick={() => setSelectedMedal(m)}
-                      className={`px-4 py-3 rounded-xl text-[9px] font-black transition-all border ${
-                        selectedMedal === m ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-[#0f172a] border-white/10 text-slate-400'
+                      className={`px-4 py-2 rounded-xl text-[9px] font-black border transition-all ${
+                        selectedMedal === m ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-[#0f172a] border-white/10 text-slate-400'
                       }`}
                     >
                       {m}
@@ -165,54 +165,35 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        <div className="hidden print:block text-center mb-10">
-           <h1 className="text-2xl font-black uppercase tracking-widest">EDIAs 2026 OFFICIAL RANKINGS</h1>
-           <p className="text-sm font-bold mt-2 opacity-70">
-             {selectedTheme} | {selectedProg} | {selectedMedal}
-           </p>
-        </div>
-
+        {/* Standings List */}
         <div className="space-y-4">
           {filteredStandings.map((item, index) => (
             <div key={item.id} className="standings-row flex flex-col md:flex-row items-center gap-6 p-6 rounded-[2.5rem] border bg-[#1e293b]/40 border-white/5">
-              
-              <div className={`w-14 h-14 shrink-0 rounded-[1.2rem] flex items-center justify-center font-black italic text-2xl medal-box ${index === 0 ? 'bg-blue-600 text-white shadow-xl' : 'bg-white/5 text-slate-500'}`}>
+              <div className={`w-14 h-14 shrink-0 rounded-[1.2rem] flex items-center justify-center font-black italic text-2xl ${index === 0 ? 'bg-blue-600 text-white shadow-xl' : 'bg-white/5 text-slate-500'}`}>
                 {index + 1}
               </div>
-
-              <div className="flex-grow min-w-0 w-full text-center md:text-left">
-                <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-3">
-                  <span className="bg-blue-500/20 text-blue-400 text-[9px] font-black px-3 py-1 rounded-lg border border-blue-500/20 uppercase">Booth {item.booth_number}</span>
+              <div className="flex-grow text-center md:text-left">
+                <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-2">
+                  <span className="bg-blue-500/20 text-blue-400 text-[9px] font-black px-3 py-1 rounded-lg border border-blue-500/20">BOOTH {item.booth_number}</span>
                   <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-black px-3 py-1 rounded-lg border border-emerald-500/20 uppercase">{item.program || 'N/A'}</span>
                 </div>
-                <h2 className="text-lg font-black text-white uppercase tracking-tight mb-1">{item.project_name}</h2>
-                
-                {/* TEAM & SUPERVISOR SECTION */}
-                <div className="space-y-1">
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-                    Team: <span className="text-blue-400">{item.team_name}</span>
-                  </p>
-                  <p className="text-slate-500 text-[9px] font-bold uppercase tracking-[0.2em]">
-                    SV: <span className="text-slate-300">{item.supervisor_name || 'No Supervisor'}</span>
-                  </p>
+                <h2 className="text-lg font-black text-white uppercase mb-1">{item.project_name}</h2>
+                <div className="flex flex-col gap-1">
+                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Team: <span className="text-blue-400">{item.team_name}</span></p>
+                  <p className="text-slate-500 text-[9px] font-bold uppercase tracking-[0.2em]">SV: <span className="text-slate-300">{item.supervisor_name || 'No Supervisor'}</span></p>
                 </div>
               </div>
-
-              <div className="shrink-0 w-full md:w-48 text-center md:text-right md:border-l border-white/10 md:pl-8">
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 no-print">Total Average</p>
-                <div className={`medal-box inline-block w-full md:min-w-[140px] px-6 py-4 rounded-2xl border-2 font-black text-xl transition-all ${getMedalStyles(item.finalScore)}`}>
-                  <span className="no-print">{item.finalScore.toFixed(2)}%</span>
-                  <span className="hidden print:inline">
-                    {item.finalScore >= 80 ? "🥇 EMAS" : item.finalScore >= 70 ? "🥈 PERAK" : item.finalScore >= 60 ? "🥉 GANGSA" : "SIJIL"}
-                  </span>
+              <div className="shrink-0 w-full md:w-48 text-center md:text-right border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-8">
+                <div className={`inline-block w-full md:min-w-[140px] px-6 py-4 rounded-2xl border-2 font-black text-xl ${getMedalStyles(item.finalScore)}`}>
+                  {item.finalScore.toFixed(2)}%
                 </div>
               </div>
             </div>
           ))}
 
-          {filteredStandings.length === 0 && (
+          {filteredStandings.length === 0 && !loading && (
             <div className="text-center py-20 opacity-30 font-black uppercase tracking-widest">
-              No results found for these filters
+              No results found for {selectedProg} | {selectedMedal}
             </div>
           )}
         </div>
