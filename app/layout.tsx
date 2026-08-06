@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
+import Navbar from "./components/Navbar";
 
 export const metadata: Metadata = {
   title: "Innovate Grade Master 2.0 - Competition Scoring Platform",
