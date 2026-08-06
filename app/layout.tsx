@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Innovate Grade Master 2.0 is an automated web platform for competition scoring, live leaderboard updates, and judge management.",
   keywords: ["Innovate Grade Master", "Grade Master 2.0", "Competition Scoring", "Leaderboard System"],
   verification: {
-    google: "YOUR_GOOGLE_VERIFICATION_CODE_HERE",
+    google: "EDcxpCiHH7fg82YM",
   },
 };
 
