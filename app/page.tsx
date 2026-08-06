@@ -15,14 +15,12 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // 💡 The Trick: This flag prevents overlapping lock requests!
     let isMounted = true;
 
     const fetchUserProfile = async () => {
-      // 1. Check if a user is logged in
+      // 1. Check current authenticated user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-      // Stop right here if Next.js double-rendered and unmounted this attempt
       if (!isMounted) return;
 
       if (authError || !user) {
@@ -30,27 +28,45 @@ export default function Home() {
         return;
       }
 
-      // 2. Fetch their live role from the profiles table
+      // 2. Fetch profile from database
       const { data, error } = await supabase
         .from('profiles')
         .select('username, role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!isMounted) return;
 
-      if (!error && data) {
-        setProfile(data);
-      } else {
-        // Fallback safety net for local testing!
-        setProfile({ username: 'pankoo', role: 'admin' });
+      // Determine actual role from DB or email fallback
+      let userRole = data?.role;
+
+      if (!userRole) {
+        // Fallback check: If the email contains 'admin', assign admin role
+        if (user.email?.toLowerCase().includes('admin')) {
+          userRole = 'admin';
+        } else {
+          userRole = 'judge';
+        }
       }
+
+      const userProfile = {
+        username: data?.username || user.email?.split('@')[0] || 'User',
+        role: userRole
+      };
+
+      setProfile(userProfile);
+
+      // 🚀 AUTO-REDIRECT ADMINS TO ADMIN DASHBOARD
+      if (userRole === 'admin') {
+        router.push('/admin/dashboard');
+        return;
+      }
+
       setLoading(false);
     };
 
     fetchUserProfile();
 
-    // Clean up function sets flag to false when Next.js tries to fire this twice
     return () => {
       isMounted = false;
     };
@@ -64,7 +80,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500 font-medium">Loading Dashboard...</p>
+        <p className="text-gray-500 font-medium animate-pulse">Loading Dashboard...</p>
       </div>
     );
   }
@@ -85,7 +101,7 @@ export default function Home() {
           </div>
           <button 
             onClick={handleLogout}
-            className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm"
+            className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm cursor-pointer"
           >
             Logout
           </button>
@@ -110,7 +126,7 @@ export default function Home() {
             <p className="text-sm text-amber-600 mt-4 font-medium group-hover:underline">View Standings →</p>
           </Link>
 
-          {/* CARD 3: CRITERIA SETUP (Admin Only) */}
+          {/* CARD 3: CRITERIA SETUP */}
           {isAdmin ? (
             <Link href="/admin/criteria" className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition group">
               <div className="text-emerald-600 bg-emerald-50 w-10 h-10 flex items-center justify-center rounded-lg font-bold text-xl mb-4 group-hover:bg-emerald-600 group-hover:text-white transition">⚙️</div>
@@ -126,7 +142,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* CARD 4: MANAGE PARTICIPANTS (Admin Only) */}
+          {/* CARD 4: MANAGE PARTICIPANTS */}
           {isAdmin ? (
             <Link href="/admin/participants" className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition group">
               <div className="text-purple-600 bg-purple-50 w-10 h-10 flex items-center justify-center rounded-lg font-bold text-xl mb-4 group-hover:bg-purple-600 group-hover:text-white transition">👥</div>
@@ -142,7 +158,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* CARD 5: MANAGE JUDGES (Admin Only) */}
+          {/* CARD 5: MANAGE JUDGES */}
           {isAdmin ? (
             <Link href="/admin/judges" className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition group">
               <div className="text-rose-600 bg-rose-50 w-10 h-10 flex items-center justify-center rounded-lg font-bold text-xl mb-4 group-hover:bg-rose-600 group-hover:text-white transition">⚖️</div>

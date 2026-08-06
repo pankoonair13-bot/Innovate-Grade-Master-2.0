@@ -1,11 +1,48 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
+  const [enforceAssignment, setEnforceAssignment] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState(true);
+
+  // Load current assignment mode setting
+  useEffect(() => {
+    async function fetchSetting() {
+      const { data } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'enforce_booth_assignment')
+        .maybeSingle();
+
+      if (data) {
+        setEnforceAssignment(data.value === 'true');
+      }
+      setToggleLoading(false);
+    }
+    fetchSetting();
+  }, []);
+
+  // Toggle mode ON / OFF
+  const toggleAssignmentMode = async () => {
+    const newValue = !enforceAssignment;
+    setEnforceAssignment(newValue);
+
+    const { error } = await supabase
+      .from('system_settings')
+      .upsert({ 
+        key: 'enforce_booth_assignment', 
+        value: String(newValue) 
+      }, { onConflict: 'key' });
+
+    if (error) {
+      alert("Failed to update setting: " + error.message);
+      setEnforceAssignment(!newValue); // revert on error
+    }
+  };
 
   const runAction = async (type: 'scores' | 'all') => {
     const isConfirmed = confirm(
@@ -54,9 +91,40 @@ export default function AdminDashboard() {
           </div>
         </header>
 
+        {/* BOOTH ASSIGNMENT TOGGLE CONTROL */}
+        <div className="bg-white rounded-[2rem] p-6 mb-8 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className={`p-4 rounded-2xl text-2xl ${enforceAssignment ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+              {enforceAssignment ? '🔒' : '🔓'}
+            </div>
+            <div>
+              <h3 className="font-black text-slate-800 text-base uppercase tracking-tight">
+                Booth Assignment Mode
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {enforceAssignment 
+                  ? "ON — Judges can ONLY see and score booths explicitly assigned to them." 
+                  : "OFF — Open Mode: Judges can see and score EVERY booth."}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={toggleAssignmentMode}
+            disabled={toggleLoading}
+            className={`w-full md:w-auto px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm ${
+              enforceAssignment 
+                ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-95" 
+                : "bg-slate-200 text-slate-700 hover:bg-slate-300 active:scale-95"
+            }`}
+          >
+            {toggleLoading ? "Loading..." : `Assignment Mode: ${enforceAssignment ? "ON" : "OFF"}`}
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* NEW CARD: Monitoring & Audit (The Tracker) */}
+          {/* Monitoring & Audit */}
           <Link href="/admin/audit" className="lg:col-span-3">
             <div className="bg-blue-600 rounded-[2.5rem] p-8 shadow-xl border border-blue-400 flex flex-col md:flex-row items-center justify-between group hover:bg-blue-700 transition-all cursor-pointer">
               <div className="flex items-center gap-6">
@@ -129,7 +197,7 @@ export default function AdminDashboard() {
                 <button 
                   onClick={() => runAction('scores')}
                   disabled={loading}
-                  className="px-6 py-3 bg-orange-100 text-orange-600 rounded-xl font-black text-[10px] uppercase hover:bg-orange-600 hover:text-white transition-all disabled:opacity-50"
+                  className="px-6 py-3 bg-orange-100 text-orange-600 rounded-xl font-black text-[10px] uppercase hover:bg-orange-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {loading && status.includes('Standings') ? "Busy..." : "Reset"}
                 </button>
@@ -143,7 +211,7 @@ export default function AdminDashboard() {
                 <button 
                   onClick={() => runAction('all')}
                   disabled={loading}
-                  className="px-6 py-3 bg-red-100 text-red-600 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
+                  className="px-6 py-3 bg-red-100 text-red-600 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {loading && status.includes('Database') ? "Busy..." : "Wipe"}
                 </button>

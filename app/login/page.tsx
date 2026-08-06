@@ -17,7 +17,7 @@ export default function LoginPage() {
 
     // 💡 CUSTOM ROUTING LOGIC:
     let emailToAuth = "";
-    const input = username.trim();
+    const input = username.trim().toLowerCase().replace(/\s+/g, '');
 
     if (input === 'pankoo') {
       // Automatically maps 'pankoo' to your actual admin email in Auth
@@ -40,19 +40,30 @@ export default function LoginPage() {
       if (authError) throw new Error("Invalid username or password.");
 
       if (data.user) {
-        // 2. Fetch role from the 'profiles' table using the User UUID
+        // 2. Fetch role and active status from 'profiles' table using User UUID
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, is_active')
           .eq('id', data.user.id)
           .maybeSingle();
 
         if (profileError) throw new Error("Database error. Please try again.");
 
-        // 3. Direct users to the correct page based on their role
+        // 3. Check if account exists and whether it's active
         if (!profile) {
-          setErrorMsg("No role assigned. Check your profiles table in Supabase.");
-        } else if (profile.role === 'admin') {
+          setErrorMsg("No profile found. Check your profiles table in Supabase.");
+          await supabase.auth.signOut();
+          return;
+        }
+
+        if (profile.is_active === false) {
+          // Immediately revoke active session if disabled
+          await supabase.auth.signOut();
+          throw new Error("Your account has been disabled by the administrator.");
+        }
+
+        // 4. Direct users to the correct page based on their role
+        if (profile.role === 'admin') {
           router.push('/admin/dashboard');
         } else if (profile.role === 'judge') {
           router.push('/scoring');
@@ -118,7 +129,7 @@ export default function LoginPage() {
 
           <button 
             disabled={loading}
-            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all mt-4 disabled:opacity-50"
+            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all mt-4 disabled:opacity-50 cursor-pointer"
           >
             {loading ? "Verifying..." : "Sign In"}
           </button>
