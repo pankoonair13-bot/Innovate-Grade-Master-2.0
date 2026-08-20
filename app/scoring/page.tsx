@@ -266,27 +266,29 @@ export default function ScoringPanel() {
                     ))}
                   </div>
 
-                  {/* Rubric Descriptions */}
-                  <div className="grid grid-cols-5 border border-slate-200 rounded-xl overflow-hidden text-slate-600 text-[10px] font-medium bg-slate-50/50 mt-2">
-                    <div className="p-2 border-r border-slate-200 flex flex-col justify-between">
-                      <span className="font-black text-slate-400 block mb-1">Mark 1 - 2</span>
-                      <p className="leading-tight">{item.desc_1_2 || "N/A"}</p>
-                    </div>
-                    <div className="p-2 border-r border-slate-200 flex flex-col justify-between">
-                      <span className="font-black text-slate-400 block mb-1">Mark 3 - 4</span>
-                      <p className="leading-tight">{item.desc_3_4 || "N/A"}</p>
-                    </div>
-                    <div className="p-2 border-r border-slate-200 flex flex-col justify-between">
-                      <span className="font-black text-slate-400 block mb-1">Mark 5 - 6</span>
-                      <p className="leading-tight">{item.desc_5_6 || "N/A"}</p>
-                    </div>
-                    <div className="p-2 border-r border-slate-200 flex flex-col justify-between">
-                      <span className="font-black text-slate-400 block mb-1">Mark 7 - 8</span>
-                      <p className="leading-tight">{item.desc_7_8 || "N/A"}</p>
-                    </div>
-                    <div className="p-2 flex flex-col justify-between">
-                      <span className="font-black text-slate-400 block mb-1">Mark 9 - 10</span>
-                      <p className="leading-tight">{item.desc_9_10 || "N/A"}</p>
+                  {/* Rubric Descriptions - Wrapped with horizontal overflow container */}
+                  <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-slate-50/50 mt-2">
+                    <div className="grid grid-cols-5 text-slate-600 text-[10px] font-medium min-w-[600px]">
+                      <div className="p-2.5 border-r border-slate-200 flex flex-col justify-between">
+                        <span className="font-black text-slate-400 block mb-1">Mark 1 - 2</span>
+                        <p className="leading-tight">{item.desc_1_2 || "N/A"}</p>
+                      </div>
+                      <div className="p-2.5 border-r border-slate-200 flex flex-col justify-between">
+                        <span className="font-black text-slate-400 block mb-1">Mark 3 - 4</span>
+                        <p className="leading-tight">{item.desc_3_4 || "N/A"}</p>
+                      </div>
+                      <div className="p-2.5 border-r border-slate-200 flex flex-col justify-between">
+                        <span className="font-black text-slate-400 block mb-1">Mark 5 - 6</span>
+                        <p className="leading-tight">{item.desc_5_6 || "N/A"}</p>
+                      </div>
+                      <div className="p-2.5 border-r border-slate-200 flex flex-col justify-between">
+                        <span className="font-black text-slate-400 block mb-1">Mark 7 - 8</span>
+                        <p className="leading-tight">{item.desc_7_8 || "N/A"}</p>
+                      </div>
+                      <div className="p-2.5 flex flex-col justify-between">
+                        <span className="font-black text-slate-400 block mb-1">Mark 9 - 10</span>
+                        <p className="leading-tight">{item.desc_9_10 || "N/A"}</p>
+                      </div>
                     </div>
                   </div>
 
