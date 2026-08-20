@@ -62,6 +62,7 @@ export default function AdminDashboard() {
     }
   };
 
+  // Fixed Deletion Handler (Avoids UUID syntax error by targeting column values directly)
   const runAction = async (type: 'scores' | 'all') => {
     const isConfirmed = confirm(
       type === 'scores' 
@@ -76,14 +77,20 @@ export default function AdminDashboard() {
 
     try {
       if (type === 'scores') {
-        const { error } = await supabase.from('scores').delete().neq('id', 0);
+        // Safe query that target all scores without triggering UUID casting errors on ID
+        const { error } = await supabase.from('scores').delete().gte('score', 0);
         if (error) throw error;
       } else {
-        await supabase.from('scores').delete().neq('id', 0);
-        const { error } = await supabase.from('participants').delete().neq('id', 0);
-        if (error) throw error;
+        // Delete all scores first to prevent foreign key constraint violations
+        const { error: scoresError } = await supabase.from('scores').delete().gte('score', 0);
+        if (scoresError) throw scoresError;
+
+        // Delete all participants safely by timestamp filter
+        const { error: partError } = await supabase.from('participants').delete().gt('created_at', '1970-01-01T00:00:00Z');
+        if (partError) throw partError;
       }
       alert("✅ Operation Successful");
+      window.location.reload();
     } catch (err: any) {
       alert("❌ Error: " + err.message);
     } finally {
@@ -192,7 +199,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Card: Leaderboard & Criteria (Dynamic Fade for Judges) */}
+          {/* Card: Leaderboard & Criteria */}
           {isJudge ? (
             <div className="bg-slate-100 rounded-[2.5rem] p-8 border border-slate-200/50 opacity-60 flex flex-col justify-between">
               <div>
