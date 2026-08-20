@@ -152,6 +152,7 @@ export default function Leaderboard() {
       "Project Title": item.project_name || "No Project Title",
       "Leader Name": item.name || item.participant_name || "N/A",
       "Team": item.team_name || "N/A",
+      "Supervisor": item.supervisor_name || item.supervisor || "N/A",
       "Program": item.program || "N/A",
       "Theme/Category": item.category || item.theme || "N/A",
       "Award Medal": item.award,
@@ -167,6 +168,7 @@ export default function Leaderboard() {
       { wch: 35 },
       { wch: 25 },
       { wch: 15 },
+      { wch: 25 },
       { wch: 10 },
       { wch: 45 },
       { wch: 14 },
@@ -317,55 +319,67 @@ export default function Leaderboard() {
               Loading Leaderboard Data...
             </div>
           ) : (
-            filteredStandings.map((item, index) => (
-              <div 
-                key={item.id} 
-                className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 rounded-2xl bg-slate-900/40 border border-white/5 hover:border-white/10 transition-all gap-4 print:border-slate-200 print:bg-white print:text-black print:p-4"
-              >
-                {/* Left Section: Rank + Title + Info */}
-                <div className="flex items-start md:items-center gap-3 md:gap-6">
-                  <span className="text-2xl md:text-3xl font-black text-slate-700 min-w-[2rem] shrink-0 print:text-black">
-                    {index + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-base md:text-xl font-bold uppercase tracking-tight text-white break-words print:text-black">
-                      {item.project_name || "No Project Title"}
-                    </h2>
-                    <p className="text-xs md:text-sm text-slate-400 font-medium break-words mt-0.5 print:text-slate-600">
-                      Leader: {item.name || item.participant_name || "N/A"} {item.team_name ? `• ${item.team_name}` : ''}
-                    </p>
-                    {(item.category || item.theme) && (
-                      <p className="text-[10px] md:text-xs text-slate-500 font-semibold uppercase mt-1 break-words print:text-slate-600">
-                        {item.category || item.theme}
-                      </p>
-                    )}
-                    {item.program && (
-                      <span className="inline-block mt-2 text-[10px] font-extrabold bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded uppercase print:border-blue-300 print:text-blue-700">
-                        {item.program}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Right Section: Award Badge + Score Block */}
-                <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 border-t border-white/5 md:border-t-0 pt-3 md:pt-0 shrink-0">
-                  {/* Award Badge Display */}
-                  <div className={`px-3 md:px-4 py-1.5 rounded-xl text-xs font-black tracking-widest border font-mono ${item.awardColor} print:[-webkit-print-color-adjust:exact] print:[print-color-adjust:exact]`}>
-                    {item.award}
-                  </div>
+            filteredStandings.map((item, index) => {
+              const supervisorName = item.supervisor_name || item.supervisor;
 
-                  {/* Conditional Score block */}
-                  {printLayout === 'with-points' && (
-                    <div className="text-right min-w-[4.5rem]">
-                      <div className="text-xl md:text-3xl font-black text-blue-400 print:text-blue-600">
-                        {item.finalScore.toFixed(2)}%
-                      </div>
-                      <div className="text-[9px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider print:text-slate-400">Average</div>
+              return (
+                <div 
+                  key={item.id} 
+                  className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 rounded-2xl bg-slate-900/40 border border-white/5 hover:border-white/10 transition-all gap-4 print:border-slate-200 print:bg-white print:text-black print:p-4"
+                >
+                  {/* Left Section: Rank + Title + Info */}
+                  <div className="flex items-start md:items-center gap-3 md:gap-6">
+                    <span className="text-2xl md:text-3xl font-black text-slate-700 min-w-[2rem] shrink-0 print:text-black">
+                      {index + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-base md:text-xl font-bold uppercase tracking-tight text-white break-words print:text-black">
+                        {item.project_name || "No Project Title"}
+                      </h2>
+                      <p className="text-xs md:text-sm text-slate-400 font-medium break-words mt-0.5 print:text-slate-600">
+                        Leader: {item.name || item.participant_name || "N/A"} {item.team_name ? `• ${item.team_name}` : ''}
+                      </p>
+                      
+                      {/* Supervisor Badge / Display */}
+                      {supervisorName && (
+                        <p className="text-xs font-extrabold text-blue-400 uppercase mt-0.5 print:text-blue-700">
+                          SV: <span className="text-slate-300 font-semibold print:text-slate-800">{supervisorName}</span>
+                        </p>
+                      )}
+
+                      {(item.category || item.theme) && (
+                        <p className="text-[10px] md:text-xs text-slate-500 font-semibold uppercase mt-1 break-words print:text-slate-600">
+                          {item.category || item.theme}
+                        </p>
+                      )}
+                      {item.program && (
+                        <span className="inline-block mt-2 text-[10px] font-extrabold bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded uppercase print:border-blue-300 print:text-blue-700">
+                          {item.program}
+                        </span>
+                      )}
                     </div>
-                  )}
+                  </div>
+                  
+                  {/* Right Section: Award Badge + Score Block */}
+                  <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 border-t border-white/5 md:border-t-0 pt-3 md:pt-0 shrink-0">
+                    {/* Award Badge Display */}
+                    <div className={`px-3 md:px-4 py-1.5 rounded-xl text-xs font-black tracking-widest border font-mono ${item.awardColor} print:[-webkit-print-color-adjust:exact] print:[print-color-adjust:exact]`}>
+                      {item.award}
+                    </div>
+
+                    {/* Conditional Score block */}
+                    {printLayout === 'with-points' && (
+                      <div className="text-right min-w-[4.5rem]">
+                        <div className="text-xl md:text-3xl font-black text-blue-400 print:text-blue-600">
+                          {item.finalScore.toFixed(2)}%
+                        </div>
+                        <div className="text-[9px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider print:text-slate-400">Average</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
 
           {filteredStandings.length === 0 && !loading && (
