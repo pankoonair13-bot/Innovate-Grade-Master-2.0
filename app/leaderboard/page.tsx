@@ -83,17 +83,17 @@ export default function Leaderboard() {
           ? scoresArray.reduce((acc: number, s: any) => acc + (Number(s.score) || 0), 0) / scoresArray.length 
           : 0;
         
-        let award = "SIJIL";
+        let award = "CERTIFICATE";
         let awardColor = "text-white border-white/30 bg-white/10 print:bg-slate-100 print:text-black print:border-slate-400";
         
         if (avg >= 80) {
-          award = "EMAS";
+          award = "GOLD";
           awardColor = "text-yellow-400 border-yellow-400/20 bg-yellow-500/5 print:bg-yellow-100 print:text-yellow-700 print:border-yellow-300";
         } else if (avg >= 70) {
-          award = "PERAK";
+          award = "SILVER";
           awardColor = "text-slate-300 border-slate-300/20 bg-slate-300/5 print:bg-slate-200 print:text-slate-800 print:border-slate-400";
         } else if (avg >= 50) {
-          award = "GANGSA";
+          award = "BRONZE";
           awardColor = "text-amber-500 border-amber-700/40 bg-amber-950 print:bg-amber-100 print:text-amber-900 print:border-amber-400";
         }
         
