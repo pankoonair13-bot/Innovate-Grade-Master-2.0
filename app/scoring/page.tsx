@@ -198,7 +198,6 @@ export default function ScoringPanel() {
         breakdown: marks
       };
 
-      // Upsert: Updates score if it already exists for this (participant_id, judge_id) combo
       const { error: upsertError } = await supabase
         .from('scores')
         .upsert(payload, { onConflict: 'participant_id,judge_id' });
@@ -263,33 +262,15 @@ export default function ScoringPanel() {
             })}
           </select>
 
-          {/* Active Participant Details Card */}
+          {/* Active Participant Details Card (Cleaned to Title + Booth Number Only) */}
           {selectedParticipant && (
-            <div className="mt-4 p-4 rounded-xl bg-slate-900 text-white space-y-2">
-              <div className="flex justify-between items-start gap-2">
-                <h3 className="text-base md:text-lg font-black uppercase tracking-tight text-blue-400">
-                  {selectedParticipant.project_name || "No Project Title"}
-                </h3>
-                <span className="bg-blue-600 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-lg shrink-0">
-                  Booth {selectedParticipant.booth_number}
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 font-medium">
-                <span className="text-slate-400">Leader/Participant:</span> {selectedParticipant.name || selectedParticipant.participant_name || "N/A"} 
-                {selectedParticipant.team_name ? ` (${selectedParticipant.team_name})` : ""}
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {(selectedParticipant.category || selectedParticipant.theme) && (
-                  <span className="text-[10px] font-bold bg-white/10 px-2.5 py-0.5 rounded text-slate-300 uppercase">
-                    {selectedParticipant.category || selectedParticipant.theme}
-                  </span>
-                )}
-                {selectedParticipant.program && (
-                  <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded uppercase">
-                    {selectedParticipant.program}
-                  </span>
-                )}
-              </div>
+            <div className="mt-4 p-5 rounded-xl bg-[#0b1329] text-white flex items-center justify-between gap-4 shadow-md">
+              <h3 className="text-base md:text-lg font-black uppercase tracking-tight text-blue-400 leading-tight">
+                {selectedParticipant.project_name || "No Project Title"}
+              </h3>
+              <span className="bg-blue-600 text-white font-black text-xs px-3 py-1.5 rounded-lg shrink-0 whitespace-nowrap">
+                Booth {selectedParticipant.booth_number}
+              </span>
             </div>
           )}
         </div>
