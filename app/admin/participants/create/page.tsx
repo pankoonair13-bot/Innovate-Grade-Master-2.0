@@ -20,20 +20,24 @@ export default function CreateParticipantPage() {
 
     const trimmedSupervisor = supervisor.trim();
 
-    // Included both supervisor key variations to cover all schema requirements
+    // Map supervisor to all potential column variants and team/name fallbacks
     const payload = { 
       booth_number: booth.trim(),
       project_name: project.trim(), 
-      team_name: team.trim(), 
+      team_name: team.trim(),
+      name: team.trim(),
       program: program.trim(),
       project_theme: theme.trim(),
+      theme: theme.trim(),
+      category: theme.trim(),
       supervisor: trimmedSupervisor,
       supervisor_name: trimmedSupervisor
     };
 
+    // Primary insert attempt
     let { error } = await supabase.from('participants').insert([payload]);
 
-    // Fallback attempt removing supervisor_name if database rejects it
+    // Fallback 1: Remove 'supervisor_name' if database column doesn't exist
     if (error && error.message.includes("supervisor_name")) {
       const fallbackPayload = { ...payload };
       delete (fallbackPayload as any).supervisor_name;
@@ -42,7 +46,7 @@ export default function CreateParticipantPage() {
       error = fallbackResult.error;
     }
 
-    // Fallback attempt removing supervisor if database rejects it
+    // Fallback 2: Remove 'supervisor' if database column doesn't exist
     if (error && error.message.includes("supervisor")) {
       const fallbackPayload = { ...payload };
       delete (fallbackPayload as any).supervisor;
