@@ -1,12 +1,15 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 
 export default function Leaderboard() {
+  const router = useRouter();
   const [allStandings, setAllStandings] = useState<any[]>([]); 
   const [filteredStandings, setFilteredStandings] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   // Filter States
   const [selectedTheme, setSelectedTheme] = useState('ALL CATEGORIES');
@@ -16,16 +19,46 @@ export default function Leaderboard() {
   // Print Mode Layout Toggle: 'with-points' or 'without-points'
   const [printLayout, setPrintLayout] = useState<'with-points' | 'without-points'>('with-points');
 
-  // 1. Core Fetch Effect
+  // 1. Core Fetch Effect & Auth Verification
   useEffect(() => {
-    fetchLeaderboard(true);
-    
+    checkAuthAndFetch();
+
     const interval = setInterval(() => {
       fetchLeaderboard(false);
     }, 20000); 
 
     return () => clearInterval(interval);
   }, []);
+
+  async function checkAuthAndFetch() {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      setAuthorized(false);
+      setLoading(false);
+      return;
+    }
+
+    // Retrieve role from user metadata or profile table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const role = profile?.role || user.user_metadata?.role;
+
+    // Deny access if user is a judge
+    if (role === 'judge') {
+      setAuthorized(false);
+      setLoading(false);
+      return;
+    }
+
+    setAuthorized(true);
+    await fetchLeaderboard(false);
+  }
 
   // 2. Filter Trigger Effect
   useEffect(() => {
@@ -139,6 +172,27 @@ export default function Leaderboard() {
 
     XLSX.writeFile(workbook, `EDIAS_2026_Leaderboard_${selectedTheme.split(':')[0]}.xlsx`);
   };
+
+  // Block Screen for Restricted Access
+  if (authorized === false) {
+    return (
+      <div className="min-h-screen bg-[#020617] text-white flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-slate-900 border border-white/10 p-8 rounded-3xl max-w-md w-full shadow-2xl">
+          <span className="text-5xl mb-4 block">🔒</span>
+          <h1 className="text-2xl font-black mb-2">Access Restricted</h1>
+          <p className="text-slate-400 text-sm mb-6">
+            Judges are not allowed to view the overall leaderboard standings.
+          </p>
+          <button 
+            onClick={() => router.push('/scoring')}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all"
+          >
+            Return to Scoring Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#020617] text-white p-4 md:p-8 font-sans print:bg-white print:text-black">
