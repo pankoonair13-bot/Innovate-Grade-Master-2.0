@@ -58,7 +58,6 @@ export default function ParticipantsPage() {
   const assignJudge = async (boothNumber: string) => {
     if (!selectedJudge) return;
 
-    // Only payload columns that exist in judge_assignments (judge_name, booth_number)
     const payload = {
       judge_name: selectedJudge,
       booth_number: boothNumber
@@ -86,7 +85,7 @@ export default function ParticipantsPage() {
     setEditForm({
       project_name: p.project_name || '',
       booth_number: p.booth_number || '',
-      team_name: p.team_name || '',
+      team_name: p.team_name || p.name || '',
       program: p.program || '',
       project_theme: p.project_theme || p.theme || '',
       supervisor_name: p.supervisor_name || p.supervisor || ''
@@ -99,6 +98,7 @@ export default function ParticipantsPage() {
       project_name: editForm.project_name.trim(),
       booth_number: editForm.booth_number.trim(),
       team_name: editForm.team_name.trim(),
+      name: editForm.team_name.trim(),
       program: editForm.program.trim(),
       project_theme: editForm.project_theme.trim(),
       theme: editForm.project_theme.trim(),
@@ -106,10 +106,26 @@ export default function ParticipantsPage() {
       supervisor: editForm.supervisor_name.trim()
     };
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from('participants')
       .update(payload)
       .eq('id', id);
+
+    // Fallback if supervisor_name column doesn't exist
+    if (error && error.message.includes("supervisor_name")) {
+      const fallbackPayload = { ...payload };
+      delete (fallbackPayload as any).supervisor_name;
+      const fallbackResult = await supabase.from('participants').update(fallbackPayload).eq('id', id);
+      error = fallbackResult.error;
+    }
+
+    // Fallback if supervisor column doesn't exist
+    if (error && error.message.includes("supervisor")) {
+      const fallbackPayload = { ...payload };
+      delete (fallbackPayload as any).supervisor;
+      const fallbackResult = await supabase.from('participants').update(fallbackPayload).eq('id', id);
+      error = fallbackResult.error;
+    }
 
     if (error) {
       alert("❌ Error updating: " + error.message);
@@ -147,7 +163,7 @@ export default function ParticipantsPage() {
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="p-6 text-[10px] font-black uppercase text-slate-400">Project / Team</th>
+                <th className="p-6 text-[10px] font-black uppercase text-slate-400">Project / Team / Supervisor</th>
                 <th className="p-6 text-[10px] font-black uppercase text-slate-400">Booth / Prog / Theme</th>
                 <th className="p-6 text-[10px] font-black uppercase text-slate-400">Assigned Judges</th>
                 <th className="p-6 text-[10px] font-black uppercase text-slate-400 text-right">Actions</th>
@@ -157,6 +173,7 @@ export default function ParticipantsPage() {
               {participants.map((p) => {
                 const isEditing = editingId === p.id;
                 const projectTheme = p.project_theme || p.theme || 'N/A';
+                const supervisorName = p.supervisor_name || p.supervisor || 'N/A';
                 
                 const boothJudges = assignments.filter(
                   (a) => a.booth_number === p.booth_number
@@ -170,31 +187,38 @@ export default function ParticipantsPage() {
                         <td className="p-4 space-y-2">
                           <input 
                             type="text" 
-                            className="w-full p-2.5 rounded-xl border border-blue-300 bg-white font-bold text-xs uppercase"
+                            className="w-full p-2.5 rounded-xl border border-blue-300 bg-white font-bold text-xs text-black uppercase"
                             value={editForm.project_name} 
                             placeholder="Project Name"
                             onChange={(e) => setEditForm({...editForm, project_name: e.target.value})}
                           />
                           <input 
                             type="text" 
-                            className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-[11px] font-bold text-slate-500 uppercase"
+                            className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-[11px] font-bold text-black uppercase"
                             value={editForm.team_name} 
                             placeholder="Name / Team Name"
                             onChange={(e) => setEditForm({...editForm, team_name: e.target.value})}
+                          />
+                          <input 
+                            type="text" 
+                            className="w-full p-2.5 rounded-xl border border-blue-300 bg-blue-50/50 text-[11px] font-extrabold text-blue-700 uppercase"
+                            value={editForm.supervisor_name} 
+                            placeholder="Supervisor Name (SV)"
+                            onChange={(e) => setEditForm({...editForm, supervisor_name: e.target.value})}
                           />
                         </td>
                         <td className="p-4 space-y-2">
                           <div className="flex gap-2">
                             <input 
                               type="text" 
-                              className="w-20 p-2 rounded-xl border border-blue-300 bg-white text-xs font-bold uppercase"
+                              className="w-20 p-2 rounded-xl border border-blue-300 bg-white text-xs font-bold text-black uppercase"
                               value={editForm.booth_number} 
                               placeholder="Booth"
                               onChange={(e) => setEditForm({...editForm, booth_number: e.target.value})}
                             />
                             <input 
                               type="text" 
-                              className="w-24 p-2 rounded-xl border border-slate-200 bg-white text-xs font-bold uppercase"
+                              className="w-24 p-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-black uppercase"
                               value={editForm.program} 
                               placeholder="Program"
                               onChange={(e) => setEditForm({...editForm, program: e.target.value})}
@@ -202,7 +226,7 @@ export default function ParticipantsPage() {
                           </div>
                           <input 
                             type="text" 
-                            className="w-full p-2 rounded-xl border border-slate-200 bg-white text-xs font-bold uppercase"
+                            className="w-full p-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-black uppercase"
                             value={editForm.project_theme} 
                             placeholder="Project Theme"
                             onChange={(e) => setEditForm({...editForm, project_theme: e.target.value})}
@@ -232,24 +256,27 @@ export default function ParticipantsPage() {
                       /* DISPLAY MODE */
                       <>
                         <td className="p-6">
-                          <p className="font-bold text-slate-800 uppercase text-sm">{p.project_name}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase">{p.team_name}</p>
+                          <p className="font-extrabold text-black uppercase text-sm">{p.project_name}</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase mt-0.5">{p.team_name || p.name}</p>
+                          <p className="text-[11px] font-black text-blue-600 uppercase mt-1">
+                            SV: <span className="text-slate-800">{supervisorName}</span>
+                          </p>
                         </td>
                         <td className="p-6">
                           <div className="flex flex-wrap gap-1">
-                            <span className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase">{p.booth_number}</span>
-                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase">{p.program || 'N/A'}</span>
-                            <span className="px-2.5 py-1 bg-purple-50 text-purple-600 rounded-lg text-[9px] font-black uppercase">{projectTheme}</span>
+                            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[9px] font-black uppercase">{p.booth_number}</span>
+                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[9px] font-black uppercase">{p.program || 'N/A'}</span>
+                            <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg text-[9px] font-black uppercase">{projectTheme}</span>
                           </div>
                         </td>
                         <td className="p-6">
                           <div className="flex flex-wrap items-center gap-1.5">
                             {boothJudges.map((j) => (
-                              <span key={j.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-black uppercase">
+                              <span key={j.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-black uppercase">
                                 ⚖️ {j.judge_name}
                                 <button 
                                   onClick={() => removeJudgeAssignment(j.id)}
-                                  className="text-amber-400 hover:text-red-600 ml-1 font-bold cursor-pointer"
+                                  className="text-amber-500 hover:text-red-600 ml-1 font-bold cursor-pointer"
                                 >
                                   ×
                                 </button>
@@ -261,7 +288,7 @@ export default function ParticipantsPage() {
                                 setActiveBoothForJudge(p.booth_number);
                                 setSelectedJudge('');
                               }}
-                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
                             >
                               + Assign Judge
                             </button>
