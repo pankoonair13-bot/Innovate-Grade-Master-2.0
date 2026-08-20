@@ -6,15 +6,9 @@ import * as XLSX from 'xlsx';
 
 export default function Leaderboard() {
   const router = useRouter();
-  const [allStandings, setAllStandings] = useState<any[]>([]); 
-  const [filteredStandings, setFilteredStandings] = useState<any[]>([]); 
+  const [standings, setStandings] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
-
-  // Filter States
-  const [selectedTheme, setSelectedTheme] = useState('ALL CATEGORIES');
-  const [selectedProgram, setSelectedProgram] = useState('ALL');
-  const [selectedMedal, setSelectedMedal] = useState('ALL');
 
   // Print Mode Layout Toggle: 'with-points' or 'without-points'
   const [printLayout, setPrintLayout] = useState<'with-points' | 'without-points'>('with-points');
@@ -59,32 +53,6 @@ export default function Leaderboard() {
     setAuthorized(true);
     await fetchLeaderboard(false);
   }
-
-  // 2. Filter Trigger Effect
-  useEffect(() => {
-    let filtered = [...allStandings];
-
-    if (selectedTheme !== 'ALL CATEGORIES') {
-      filtered = filtered.filter(item => {
-        const itemTheme = (item.category || item.theme || "").toUpperCase();
-        return itemTheme.includes(selectedTheme.toUpperCase());
-      });
-    }
-
-    if (selectedProgram !== 'ALL') {
-      filtered = filtered.filter(item => 
-        item.program && item.program.toUpperCase() === selectedProgram.toUpperCase()
-      );
-    }
-
-    if (selectedMedal !== 'ALL') {
-      filtered = filtered.filter(item => 
-        item.award && item.award.toUpperCase() === selectedMedal.toUpperCase()
-      );
-    }
-
-    setFilteredStandings(filtered);
-  }, [selectedTheme, selectedProgram, selectedMedal, allStandings]);
 
   async function fetchLeaderboard(showLoadingIndicator = true) {
     if (showLoadingIndicator) setLoading(true);
@@ -131,7 +99,7 @@ export default function Leaderboard() {
         };
       }).sort((a, b) => b.finalScore - a.finalScore);
 
-      setAllStandings(processed);
+      setStandings(processed);
     }
     setLoading(false);
   }
@@ -141,9 +109,9 @@ export default function Leaderboard() {
   };
 
   const exportToExcel = () => {
-    if (filteredStandings.length === 0) return alert("No data available to export!");
+    if (standings.length === 0) return alert("No data available to export!");
 
-    const excelData = filteredStandings.map((item, index) => ({
+    const excelData = standings.map((item, index) => ({
       "Rank": index + 1,
       "Project Title": item.project_name || "No Project Title",
       "Leader Name": item.name || item.participant_name || "N/A",
@@ -170,7 +138,7 @@ export default function Leaderboard() {
     ];
     worksheet['!cols'] = columnWidths;
 
-    XLSX.writeFile(workbook, `EDIAS_2026_Leaderboard_${selectedTheme.split(':')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `EDIAS_2026_Leaderboard.xlsx`);
   };
 
   // Block Screen for Restricted Access
@@ -249,86 +217,14 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* Filter Selection Panel Container */}
-        <div className="bg-slate-900/30 border border-white/5 p-4 md:p-6 rounded-3xl mb-8 space-y-6 print:hidden">
-          <div className="grid grid-cols-1 gap-6">
-            
-            {/* Filter By Theme Selection Dropdown */}
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Filter By Theme</label>
-              <select 
-                value={selectedTheme}
-                onChange={(e) => setSelectedTheme(e.target.value)}
-                className="w-full bg-slate-950/60 border border-white/10 rounded-xl px-4 py-3 text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 text-slate-300"
-              >
-                <option value="ALL CATEGORIES">ALL CATEGORIES</option>
-                <option value="TEMA 1">TEMA 1: PERTANIAN PINTAR ATAU TEKNOLOGI MAKANAN</option>
-                <option value="TEMA 3">TEMA 3: KEBUDAYAAN DAN KESENIAN ATAU PELANCONGAN DAN HOSPITALITI</option>
-                <option value="TEMA 4">TEMA 4: TEKNOLOGI HIJAU ATAU TENAGA BOLEH DIPERBAHARUI</option>
-                <option value="TEMA 5">TEMA 5: PENGURUSAN ATAU PERKHIDMATAN PERNIAGAAN</option>
-                <option value="TEMA 6">TEMA 6: PENJAGAAN KESIHATAN ATAU KESELAMATAN</option>
-                <option value="TEMA 7">TEMA 7: PENGAJARAN DAN PEMBELAJARAN</option>
-                <option value="TEMA 8">TEMA 8: SISTEM KECERDASAN A.I DAN PEMBUATAN PINTAR</option>
-                <option value="TEMA 9">TEMA 9: PENGANGKUTAN ATAU APLIKASI SISTEM RENDAH KARBON</option>
-              </select>
-            </div>
-
-            {/* Program & Medal Button Layout rows */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Program</label>
-                <div className="flex flex-wrap gap-2">
-                  {['ALL', 'DEP', 'DET', 'DTK'].map((prog) => (
-                    <button
-                      key={prog}
-                      onClick={() => setSelectedProgram(prog)}
-                      className={`px-3 md:px-4 py-2 text-xs font-bold rounded-xl transition-all border ${
-                        selectedProgram === prog 
-                          ? 'bg-blue-600 text-white border-blue-500' 
-                          : 'bg-slate-950/40 text-slate-400 border-white/5 hover:border-white/20'
-                      }`}
-                    >
-                      {prog}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Medal Status</label>
-                <div className="flex flex-wrap gap-2">
-                  {['ALL', 'EMAS', 'PERAK', 'GANGSA', 'SIJIL'].map((medal) => (
-                    <button
-                      key={medal}
-                      onClick={() => setSelectedMedal(medal)}
-                      className={`px-3 md:px-4 py-2 text-xs font-bold rounded-xl transition-all border ${
-                        selectedMedal === medal 
-                          ? medal === 'EMAS' ? 'bg-yellow-500 text-slate-950 border-yellow-400'
-                          : medal === 'PERAK' ? 'bg-slate-300 text-slate-950 border-slate-200'
-                          : medal === 'GANGSA' ? 'bg-amber-700 text-white border-amber-600'
-                          : medal === 'SIJIL' ? 'bg-white text-slate-950 border-slate-200'
-                          : 'bg-blue-600 text-white border-blue-500'
-                          : 'bg-slate-950/40 text-slate-400 border-white/5 hover:border-white/20'
-                      }`}
-                    >
-                      {medal}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
         {/* Live Standings List Render Target */}
         <div className="space-y-4">
-          {loading && filteredStandings.length === 0 ? (
+          {loading && standings.length === 0 ? (
             <div className="text-center py-20 text-slate-500 uppercase tracking-widest animate-pulse font-bold">
               Loading Leaderboard Data...
             </div>
           ) : (
-            filteredStandings.map((item, index) => (
+            standings.map((item, index) => (
               <div 
                 key={item.id} 
                 className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 rounded-2xl bg-slate-900/40 border border-white/5 hover:border-white/10 transition-all gap-4 print:border-slate-200 print:bg-white print:text-black print:p-4"
@@ -379,9 +275,9 @@ export default function Leaderboard() {
             ))
           )}
 
-          {filteredStandings.length === 0 && !loading && (
+          {standings.length === 0 && !loading && (
             <div className="text-center py-20 text-slate-600 font-bold uppercase tracking-widest border border-dashed border-white/5 rounded-2xl bg-slate-950/20">
-              No Results Found For These Filters
+              No Participants Found
             </div>
           )}
         </div>

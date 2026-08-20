@@ -11,6 +11,7 @@ export default function ScoringPanel() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isEnforced, setIsEnforced] = useState(false);
+  const [scoredIds, setScoredIds] = useState<Set<number>>(new Set());
 
   const loadData = async () => {
     setLoading(true);
@@ -18,6 +19,18 @@ export default function ScoringPanel() {
     // 1. Get current logged-in user
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     setUser(currentUser);
+
+    // Fetch existing scores by this judge to build the scored status lookup
+    if (currentUser) {
+      const { data: judgeScores } = await supabase
+        .from('scores')
+        .select('participant_id')
+        .eq('judge_id', currentUser.id);
+
+      if (judgeScores) {
+        setScoredIds(new Set(judgeScores.map(s => s.participant_id)));
+      }
+    }
 
     // 2. Fetch Assignment Enforcement Mode from system_settings
     const { data: setting } = await supabase
@@ -221,9 +234,14 @@ export default function ScoringPanel() {
                 ? "-- Choose Participant --" 
                 : "-- No Projects Found --"}
             </option>
-            {participants.map(p => (
-              <option key={p.id} value={p.id}>[{p.booth_number}] {p.project_name}</option>
-            ))}
+            {participants.map(p => {
+              const isScored = scoredIds.has(p.id);
+              return (
+                <option key={p.id} value={p.id}>
+                  {isScored ? "✅" : "⏳"} [{p.booth_number}] {p.project_name} {isScored ? "(Scored)" : ""}
+                </option>
+              );
+            })}
           </select>
         </div>
 
@@ -266,7 +284,7 @@ export default function ScoringPanel() {
                     ))}
                   </div>
 
-                  {/* Rubric Descriptions - Wrapped with horizontal overflow container */}
+                  {/* Rubric Descriptions */}
                   <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-slate-50/50 mt-2">
                     <div className="grid grid-cols-5 text-slate-600 text-[10px] font-medium min-w-[600px]">
                       <div className="p-2.5 border-r border-slate-200 flex flex-col justify-between">
