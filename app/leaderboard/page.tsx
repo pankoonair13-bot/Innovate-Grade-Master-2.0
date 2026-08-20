@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
@@ -12,6 +12,11 @@ export default function Leaderboard() {
 
   // Print Mode Layout Toggle: 'with-points' or 'without-points'
   const [printLayout, setPrintLayout] = useState<'with-points' | 'without-points'>('with-points');
+
+  // Filter States
+  const [selectedProgram, setSelectedProgram] = useState<string>('ALL');
+  const [selectedTheme, setSelectedTheme] = useState<string>('ALL');
+  const [selectedAward, setSelectedAward] = useState<string>('ALL');
 
   // 1. Core Fetch Effect & Auth Verification
   useEffect(() => {
@@ -105,14 +110,44 @@ export default function Leaderboard() {
     setLoading(false);
   }
 
+  // Extract Dynamic Options for Program and Theme Dropdowns
+  const programOptions = useMemo(() => {
+    const set = new Set<string>();
+    standings.forEach(item => {
+      if (item.program) set.add(item.program);
+    });
+    return Array.from(set).sort();
+  }, [standings]);
+
+  const themeOptions = useMemo(() => {
+    const set = new Set<string>();
+    standings.forEach(item => {
+      const themeVal = item.category || item.theme;
+      if (themeVal) set.add(themeVal);
+    });
+    return Array.from(set).sort();
+  }, [standings]);
+
+  // Filtered Standings Pipeline
+  const filteredStandings = useMemo(() => {
+    return standings.filter(item => {
+      const matchProgram = selectedProgram === 'ALL' || item.program === selectedProgram;
+      const themeVal = item.category || item.theme;
+      const matchTheme = selectedTheme === 'ALL' || themeVal === selectedTheme;
+      const matchAward = selectedAward === 'ALL' || item.award === selectedAward;
+
+      return matchProgram && matchTheme && matchAward;
+    });
+  }, [standings, selectedProgram, selectedTheme, selectedAward]);
+
   const handlePrint = () => {
     window.print();
   };
 
   const exportToExcel = () => {
-    if (standings.length === 0) return alert("No data available to export!");
+    if (filteredStandings.length === 0) return alert("No data available to export!");
 
-    const excelData = standings.map((item, index) => ({
+    const excelData = filteredStandings.map((item, index) => ({
       "Rank": index + 1,
       "Project Title": item.project_name || "No Project Title",
       "Leader Name": item.name || item.participant_name || "N/A",
@@ -125,7 +160,7 @@ export default function Leaderboard() {
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Live Standings");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Standings");
 
     const columnWidths = [
       { wch: 6 },
@@ -168,7 +203,7 @@ export default function Leaderboard() {
       <div className="max-w-4xl mx-auto print:max-w-full">
         
         {/* Top Header Interface */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 md:mb-12 border-b border-white/10 pb-6 print:hidden gap-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 border-b border-white/10 pb-6 print:hidden gap-6">
           <div>
             <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-blue-500">
               LIVE <span className="text-white">STANDINGS</span>
@@ -218,6 +253,63 @@ export default function Leaderboard() {
           </div>
         </div>
 
+        {/* Filter Controls Bar */}
+        <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4 mb-8 print:hidden grid grid-cols-1 sm:grid-cols-3 gap-4">
+          
+          {/* Programme Filter */}
+          <div>
+            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1.5 tracking-widest">
+              Programme
+            </label>
+            <select
+              value={selectedProgram}
+              onChange={(e) => setSelectedProgram(e.target.value)}
+              className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-blue-500 cursor-pointer"
+            >
+              <option value="ALL">All Programmes</option>
+              {programOptions.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Theme / Category Filter */}
+          <div>
+            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1.5 tracking-widest">
+              Theme / Category
+            </label>
+            <select
+              value={selectedTheme}
+              onChange={(e) => setSelectedTheme(e.target.value)}
+              className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-blue-500 cursor-pointer"
+            >
+              <option value="ALL">All Themes</option>
+              {themeOptions.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Award Medal Filter */}
+          <div>
+            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1.5 tracking-widest">
+              Award Medal
+            </label>
+            <select
+              value={selectedAward}
+              onChange={(e) => setSelectedAward(e.target.value)}
+              className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-blue-500 cursor-pointer"
+            >
+              <option value="ALL">All Awards</option>
+              <option value="EMAS">🥇 EMAS (Gold)</option>
+              <option value="PERAK">🥈 PERAK (Silver)</option>
+              <option value="GANGSA">🥉 GANGSA (Bronze)</option>
+              <option value="SIJIL">📜 SIJIL (Certificate)</option>
+            </select>
+          </div>
+
+        </div>
+
         {/* Live Standings Standard List */}
         <div className="space-y-4">
           {loading && standings.length === 0 ? (
@@ -225,7 +317,7 @@ export default function Leaderboard() {
               Loading Leaderboard Data...
             </div>
           ) : (
-            standings.map((item, index) => (
+            filteredStandings.map((item, index) => (
               <div 
                 key={item.id} 
                 className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 rounded-2xl bg-slate-900/40 border border-white/5 hover:border-white/10 transition-all gap-4 print:border-slate-200 print:bg-white print:text-black print:p-4"
@@ -276,9 +368,9 @@ export default function Leaderboard() {
             ))
           )}
 
-          {standings.length === 0 && !loading && (
+          {filteredStandings.length === 0 && !loading && (
             <div className="text-center py-20 text-slate-600 font-bold uppercase tracking-widest border border-dashed border-white/5 rounded-2xl bg-slate-950/20">
-              No Participants Found
+              No Participants Found matching active filters
             </div>
           )}
         </div>
