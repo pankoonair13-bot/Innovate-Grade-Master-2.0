@@ -71,6 +71,7 @@ export default function Leaderboard() {
     }
 
     if (data) {
+      // Standard calculation & linear sorting by highest score
       const processed = data.map(p => {
         const scoresArray = p.scores || [];
         const avg = scoresArray.length > 0 
@@ -217,7 +218,7 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* Live Standings List Render Target */}
+        {/* Live Standings Standard List */}
         <div className="space-y-4">
           {loading && standings.length === 0 ? (
             <div className="text-center py-20 text-slate-500 uppercase tracking-widest animate-pulse font-bold">
