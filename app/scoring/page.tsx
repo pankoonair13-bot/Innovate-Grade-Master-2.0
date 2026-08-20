@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -6,6 +6,7 @@ export default function ScoringPanel() {
   const [participants, setParticipants] = useState<any[]>([]);
   const [criteria, setCriteria] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState('');
+  const [selectedParticipant, setSelectedParticipant] = useState<any | null>(null);
   const [marks, setMarks] = useState<{ [key: number]: number }>({});
   const [submitting, setSubmitting] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -146,6 +147,40 @@ export default function ScoringPanel() {
     };
   }, []);
 
+  // Handle participant dropdown changes
+  const handleSelectParticipant = async (id: string) => {
+    setSelectedId(id);
+    
+    if (!id) {
+      setSelectedParticipant(null);
+      const resetMarks: any = {};
+      criteria.forEach(c => resetMarks[c.id] = 0);
+      setMarks(resetMarks);
+      return;
+    }
+
+    const found = participants.find(p => String(p.id) === String(id));
+    setSelectedParticipant(found || null);
+
+    // If the judge already scored this participant, load their breakdown
+    if (user) {
+      const { data: existing } = await supabase
+        .from('scores')
+        .select('breakdown')
+        .eq('participant_id', parseInt(id))
+        .eq('judge_id', user.id)
+        .maybeSingle();
+
+      if (existing?.breakdown) {
+        setMarks(existing.breakdown);
+      } else {
+        const resetMarks: any = {};
+        criteria.forEach(c => resetMarks[c.id] = 0);
+        setMarks(resetMarks);
+      }
+    }
+  };
+
   const calculateTotal = () => {
     return criteria.reduce((acc, c) => acc + ((marks[c.id] || 0) * (c.weight || 1)), 0);
   };
@@ -156,23 +191,6 @@ export default function ScoringPanel() {
 
     setSubmitting(true);
     try {
-      // 1. Check for duplicate score
-      const { data: existingScore, error: checkError } = await supabase
-        .from('scores')
-        .select('id')
-        .eq('participant_id', parseInt(selectedId))
-        .eq('judge_id', user.id)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      if (existingScore) {
-        alert("❌ You have already submitted marks for this participant!");
-        setSubmitting(false);
-        return;
-      }
-
-      // 2. Insert new score record
       const payload = {
         participant_id: parseInt(selectedId),
         judge_id: user.id,
@@ -180,11 +198,12 @@ export default function ScoringPanel() {
         breakdown: marks
       };
 
-      const { error: insertError } = await supabase
+      // Upsert: Updates score if it already exists for this (participant_id, judge_id) combo
+      const { error: upsertError } = await supabase
         .from('scores')
-        .insert([payload]);
+        .upsert(payload, { onConflict: 'participant_id,judge_id' });
 
-      if (insertError) throw insertError;
+      if (upsertError) throw upsertError;
 
       alert("🎉 Score Submitted Successfully!");
       window.location.reload(); 
@@ -215,7 +234,7 @@ export default function ScoringPanel() {
           </div>
         </div>
 
-        {/* Project Dropdown */}
+        {/* Project Selection Box */}
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-2 border-blue-100 mb-6 md:mb-8">
           <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">
             {isEnforced 
@@ -225,7 +244,7 @@ export default function ScoringPanel() {
           <select 
             className="w-full p-3 md:p-4 border rounded-xl bg-blue-50/50 font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm md:text-base cursor-pointer"
             value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
+            onChange={(e) => handleSelectParticipant(e.target.value)}
           >
             <option value="">
               {loading 
@@ -238,14 +257,44 @@ export default function ScoringPanel() {
               const isScored = scoredIds.has(p.id);
               return (
                 <option key={p.id} value={p.id}>
-                  [{p.booth_number}] {p.project_name} {isScored ? "(Scored)" : ""}
+                  [{p.booth_number}] {p.project_name} {isScored ? "✓ (Scored)" : ""}
                 </option>
               );
             })}
           </select>
+
+          {/* Active Participant Details Card */}
+          {selectedParticipant && (
+            <div className="mt-4 p-4 rounded-xl bg-slate-900 text-white space-y-2">
+              <div className="flex justify-between items-start gap-2">
+                <h3 className="text-base md:text-lg font-black uppercase tracking-tight text-blue-400">
+                  {selectedParticipant.project_name || "No Project Title"}
+                </h3>
+                <span className="bg-blue-600 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-lg shrink-0">
+                  Booth {selectedParticipant.booth_number}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 font-medium">
+                <span className="text-slate-400">Leader/Participant:</span> {selectedParticipant.name || selectedParticipant.participant_name || "N/A"} 
+                {selectedParticipant.team_name ? ` (${selectedParticipant.team_name})` : ""}
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {(selectedParticipant.category || selectedParticipant.theme) && (
+                  <span className="text-[10px] font-bold bg-white/10 px-2.5 py-0.5 rounded text-slate-300 uppercase">
+                    {selectedParticipant.category || selectedParticipant.theme}
+                  </span>
+                )}
+                {selectedParticipant.program && (
+                  <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded uppercase">
+                    {selectedParticipant.program}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Sections */}
+        {/* Rubric Sections */}
         {['A', 'B', 'C'].map(sec => (
           <div key={sec} className="mb-6 md:mb-8 bg-white rounded-2xl shadow-sm border overflow-hidden">
             <div className="bg-slate-800 p-3 text-white text-[10px] font-black uppercase tracking-widest px-6 flex justify-between items-center">
@@ -316,7 +365,7 @@ export default function ScoringPanel() {
           </div>
         ))}
 
-        {/* Footer */}
+        {/* Floating Footer */}
         <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t p-3 md:p-5 flex flex-row justify-between items-center shadow-[0_-15px_50px_rgba(0,0,0,0.1)] z-[100]">
           <div className="flex flex-col items-start pl-2 md:pl-4">
             <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Total</p>
