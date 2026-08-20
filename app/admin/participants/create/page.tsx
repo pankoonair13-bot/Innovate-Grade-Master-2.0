@@ -20,7 +20,6 @@ export default function CreateParticipantPage() {
 
     const trimmedSupervisor = supervisor.trim();
 
-    // Map supervisor to all potential column variants and team/name fallbacks
     const payload = { 
       booth_number: booth.trim(),
       project_name: project.trim(), 
@@ -34,10 +33,8 @@ export default function CreateParticipantPage() {
       supervisor_name: trimmedSupervisor
     };
 
-    // Primary insert attempt
     let { error } = await supabase.from('participants').insert([payload]);
 
-    // Fallback 1: Remove 'supervisor_name' if database column doesn't exist
     if (error && error.message.includes("supervisor_name")) {
       const fallbackPayload = { ...payload };
       delete (fallbackPayload as any).supervisor_name;
@@ -46,7 +43,6 @@ export default function CreateParticipantPage() {
       error = fallbackResult.error;
     }
 
-    // Fallback 2: Remove 'supervisor' if database column doesn't exist
     if (error && error.message.includes("supervisor")) {
       const fallbackPayload = { ...payload };
       delete (fallbackPayload as any).supervisor;
@@ -65,40 +61,40 @@ export default function CreateParticipantPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex items-center justify-center p-4 font-sans">
-      <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-sm border border-slate-100 w-full max-w-lg">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
+      <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-md border border-slate-200 w-full max-w-lg">
         
         {/* Page Title */}
-        <h1 className="text-2xl md:text-3xl font-black text-slate-800 text-center uppercase tracking-tight mb-8">
+        <h1 className="text-2xl md:text-3xl font-black text-black text-center uppercase tracking-tight mb-8">
           ADD <span className="italic text-blue-600">PARTICIPANT</span>
         </h1>
         
         <form onSubmit={handleCreate} className="space-y-5">
           {/* Booth Number */}
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">
+            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-900 mb-2">
               BOOTH NUMBER
             </label>
             <input 
               type="text" 
               required 
               placeholder="e.g. A01"
-              className="w-full p-4 rounded-2xl bg-slate-50 border border-transparent text-slate-700 font-bold text-sm focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-300"
+              className="w-full p-4 rounded-2xl bg-slate-100 border border-slate-300 text-black font-extrabold text-sm focus:bg-white focus:border-black outline-none transition-all placeholder:text-slate-500"
               value={booth} 
               onChange={(e) => setBooth(e.target.value)}
             />
           </div>
 
-          {/* Program (DEE, DKM, etc.) */}
+          {/* Program (DET, DTK, etc.) */}
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">
-              PROGRAM (DET, DTK, ETC.)
+            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-900 mb-2">
+              PROGRAM (DET, DTK, DEP.)
             </label>
             <input 
               type="text" 
               required 
               placeholder="e.g. DET, DTK, DEP"
-              className="w-full p-4 rounded-2xl bg-slate-50 border border-transparent text-slate-700 font-bold text-sm focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-300"
+              className="w-full p-4 rounded-2xl bg-slate-100 border border-slate-300 text-black font-extrabold text-sm focus:bg-white focus:border-black outline-none transition-all placeholder:text-slate-500"
               value={program} 
               onChange={(e) => setProgram(e.target.value)}
             />
@@ -106,14 +102,14 @@ export default function CreateParticipantPage() {
 
           {/* Project Theme */}
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">
+            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-900 mb-2">
               PROJECT THEME
             </label>
             <input 
               type="text" 
               required 
               placeholder="e.g. IoT / Automation / Renewable Energy"
-              className="w-full p-4 rounded-2xl bg-slate-50 border border-transparent text-slate-700 font-bold text-sm focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-300"
+              className="w-full p-4 rounded-2xl bg-slate-100 border border-slate-300 text-black font-extrabold text-sm focus:bg-white focus:border-black outline-none transition-all placeholder:text-slate-500"
               value={theme} 
               onChange={(e) => setTheme(e.target.value)}
             />
@@ -121,14 +117,14 @@ export default function CreateParticipantPage() {
 
           {/* Project Name */}
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">
+            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-900 mb-2">
               PROJECT NAME
             </label>
             <input 
               type="text" 
               required 
               placeholder="e.g. SOLAR SYSTEM"
-              className="w-full p-4 rounded-2xl bg-slate-50 border border-transparent text-slate-700 font-bold text-sm focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-300"
+              className="w-full p-4 rounded-2xl bg-slate-100 border border-slate-300 text-black font-extrabold text-sm focus:bg-white focus:border-black outline-none transition-all placeholder:text-slate-500"
               value={project} 
               onChange={(e) => setProject(e.target.value)}
             />
@@ -136,14 +132,14 @@ export default function CreateParticipantPage() {
 
           {/* Name / Team Name */}
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">
+            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-900 mb-2">
               NAME / TEAM NAME
             </label>
             <input 
               type="text" 
               required 
               placeholder="e.g. MUHAMMAD ALIF / TEAM ALPHA"
-              className="w-full p-4 rounded-2xl bg-slate-50 border border-transparent text-slate-700 font-bold text-sm focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-300"
+              className="w-full p-4 rounded-2xl bg-slate-100 border border-slate-300 text-black font-extrabold text-sm focus:bg-white focus:border-black outline-none transition-all placeholder:text-slate-500"
               value={team} 
               onChange={(e) => setTeam(e.target.value)}
             />
@@ -151,14 +147,14 @@ export default function CreateParticipantPage() {
 
           {/* Supervisor Name */}
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-blue-600 mb-2">
-              SUPERVISOR NAME (SV)
+            <label className="block text-[11px] font-black uppercase tracking-wider text-blue-700 mb-2">
+              SUPERVISOR NAME 
             </label>
             <input 
               type="text" 
               required 
               placeholder="e.g. KAVILAN"
-              className="w-full p-4 rounded-2xl bg-blue-50/40 border border-blue-200 text-blue-600 font-bold text-sm focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-blue-300"
+              className="w-full p-4 rounded-2xl bg-blue-50 border border-blue-300 text-black font-extrabold text-sm focus:bg-white focus:border-blue-600 outline-none transition-all placeholder:text-slate-500"
               value={supervisor} 
               onChange={(e) => setSupervisor(e.target.value)}
             />
