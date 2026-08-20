@@ -238,7 +238,7 @@ export default function ScoringPanel() {
               const isScored = scoredIds.has(p.id);
               return (
                 <option key={p.id} value={p.id}>
-                  {isScored ? "✅" : "⏳"} [{p.booth_number}] {p.project_name} {isScored ? "(Scored)" : ""}
+                  [{p.booth_number}] {p.project_name} {isScored ? "(Scored)" : ""}
                 </option>
               );
             })}
