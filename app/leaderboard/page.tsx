@@ -301,10 +301,10 @@ export default function Leaderboard() {
               className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="ALL">All Awards</option>
-              <option value="EMAS">🥇 EMAS (Gold)</option>
-              <option value="PERAK">🥈 PERAK (Silver)</option>
-              <option value="GANGSA">🥉 GANGSA (Bronze)</option>
-              <option value="SIJIL">📜 SIJIL (Certificate)</option>
+              <option value="GOLD">🥇 GOLD</option>
+              <option value="SILVER">🥈 SILVER</option>
+              <option value="BRONZE">🥉 BRONZE</option>
+              <option value="CERTIFICATE">📜 CERTIFICATE</option>
             </select>
           </div>
 
