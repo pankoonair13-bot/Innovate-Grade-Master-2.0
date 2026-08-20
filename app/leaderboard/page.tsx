@@ -16,12 +16,10 @@ export default function Leaderboard() {
   // Print Mode Layout Toggle: 'with-points' or 'without-points'
   const [printLayout, setPrintLayout] = useState<'with-points' | 'without-points'>('with-points');
 
-  // 1. Core Fetch Effect (Runs once on mount + sets up background polling)
+  // 1. Core Fetch Effect
   useEffect(() => {
-    // Initial load shows the loading spinner
     fetchLeaderboard(true);
     
-    // Background updates pool silently every 20 seconds without flickering the UI
     const interval = setInterval(() => {
       fetchLeaderboard(false);
     }, 20000); 
@@ -112,7 +110,6 @@ export default function Leaderboard() {
   const exportToExcel = () => {
     if (filteredStandings.length === 0) return alert("No data available to export!");
 
-    // Map fields cleanly to target tabular layout structure
     const excelData = filteredStandings.map((item, index) => ({
       "Rank": index + 1,
       "Project Title": item.project_name || "No Project Title",
@@ -128,72 +125,69 @@ export default function Leaderboard() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Live Standings");
 
-    // Pre-calculate readable column padding configurations
     const columnWidths = [
-      { wch: 6 },  // Rank
-      { wch: 35 }, // Project Title
-      { wch: 25 }, // Leader Name
-      { wch: 15 }, // Team
-      { wch: 10 }, // Program
-      { wch: 45 }, // Theme/Category
-      { wch: 14 }, // Award Medal
-      { wch: 15 }  // Average Score
+      { wch: 6 },
+      { wch: 35 },
+      { wch: 25 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 45 },
+      { wch: 14 },
+      { wch: 15 }
     ];
     worksheet['!cols'] = columnWidths;
 
-    // Trigger local client side storage write context stream downloads
     XLSX.writeFile(workbook, `EDIAS_2026_Leaderboard_${selectedTheme.split(':')[0]}.xlsx`);
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white p-8 font-sans print:bg-white print:text-black">
+    <div className="min-h-screen bg-[#020617] text-white p-4 md:p-8 font-sans print:bg-white print:text-black">
       <div className="max-w-4xl mx-auto print:max-w-full">
         
         {/* Top Header Interface */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-12 border-b border-white/10 pb-6 print:hidden gap-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 md:mb-12 border-b border-white/10 pb-6 print:hidden gap-6">
           <div>
-            <h1 className="text-6xl font-black italic tracking-tighter text-blue-500">
+            <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-blue-500">
               LIVE <span className="text-white">STANDINGS</span>
             </h1>
             <p className="text-slate-500 font-bold tracking-[0.2em] text-xs mt-2">EDIAS 2026 RANKINGS</p>
           </div>
 
           {/* Controls Panel Layout Configuration */}
-          <div className="flex flex-wrap items-center gap-4 bg-slate-900/60 p-3 rounded-2xl border border-white/5">
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-white/5">
+          <div className="flex flex-wrap items-center gap-3 md:gap-4 bg-slate-900/60 p-3 rounded-2xl border border-white/5">
+            <div className="flex bg-slate-950 p-1 rounded-xl border border-white/5 w-full sm:w-auto justify-center">
               <button 
                 onClick={() => setPrintLayout('with-points')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${printLayout === 'with-points' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${printLayout === 'with-points' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
               >
                 With Points
               </button>
               <button 
                 onClick={() => setPrintLayout('without-points')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${printLayout === 'without-points' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${printLayout === 'without-points' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
               >
                 No Points
               </button>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               <button 
                 onClick={handlePrint}
-                className="text-xs font-bold bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center gap-2"
+                className="flex-1 sm:flex-none text-xs font-bold bg-blue-600 hover:bg-blue-700 px-4 md:px-5 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center justify-center gap-2"
               >
-                🖨️ Print List
+                🖨️ Print
               </button>
 
-              {/* EXCEL EXPORT COMPONENT BUTTON INTERFACE */}
               <button 
                 onClick={exportToExcel}
-                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 px-5 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center gap-2"
+                className="flex-1 sm:flex-none text-xs font-bold bg-emerald-600 hover:bg-emerald-700 px-4 md:px-5 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center justify-center gap-2"
               >
-                📊 Export Excel
+                📊 Excel
               </button>
 
               <button 
                 onClick={() => fetchLeaderboard(true)} 
-                className="text-xs font-bold bg-slate-800 border border-white/5 hover:bg-slate-700 px-4 py-2 rounded-xl transition-all"
+                className="text-xs font-bold bg-slate-800 border border-white/5 hover:bg-slate-700 px-3 md:px-4 py-2 rounded-xl transition-all"
               >
                 {loading ? "..." : "🔄"}
               </button>
@@ -202,7 +196,7 @@ export default function Leaderboard() {
         </div>
 
         {/* Filter Selection Panel Container */}
-        <div className="bg-slate-900/30 border border-white/5 p-6 rounded-3xl mb-8 space-y-6 print:hidden">
+        <div className="bg-slate-900/30 border border-white/5 p-4 md:p-6 rounded-3xl mb-8 space-y-6 print:hidden">
           <div className="grid grid-cols-1 gap-6">
             
             {/* Filter By Theme Selection Dropdown */}
@@ -211,7 +205,7 @@ export default function Leaderboard() {
               <select 
                 value={selectedTheme}
                 onChange={(e) => setSelectedTheme(e.target.value)}
-                className="w-full bg-slate-950/60 border border-white/10 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500 text-slate-300"
+                className="w-full bg-slate-950/60 border border-white/10 rounded-xl px-4 py-3 text-xs md:text-sm font-semibold focus:outline-none focus:border-blue-500 text-slate-300"
               >
                 <option value="ALL CATEGORIES">ALL CATEGORIES</option>
                 <option value="TEMA 1">TEMA 1: PERTANIAN PINTAR ATAU TEKNOLOGI MAKANAN</option>
@@ -234,7 +228,7 @@ export default function Leaderboard() {
                     <button
                       key={prog}
                       onClick={() => setSelectedProgram(prog)}
-                      className={`px-4 py-2 text-xs font-bold rounded-xl transition-all border ${
+                      className={`px-3 md:px-4 py-2 text-xs font-bold rounded-xl transition-all border ${
                         selectedProgram === prog 
                           ? 'bg-blue-600 text-white border-blue-500' 
                           : 'bg-slate-950/40 text-slate-400 border-white/5 hover:border-white/20'
@@ -253,7 +247,7 @@ export default function Leaderboard() {
                     <button
                       key={medal}
                       onClick={() => setSelectedMedal(medal)}
-                      className={`px-4 py-2 text-xs font-bold rounded-xl transition-all border ${
+                      className={`px-3 md:px-4 py-2 text-xs font-bold rounded-xl transition-all border ${
                         selectedMedal === medal 
                           ? medal === 'EMAS' ? 'bg-yellow-500 text-slate-950 border-yellow-400'
                           : medal === 'PERAK' ? 'bg-slate-300 text-slate-950 border-slate-200'
@@ -283,43 +277,47 @@ export default function Leaderboard() {
             filteredStandings.map((item, index) => (
               <div 
                 key={item.id} 
-                className="flex items-center justify-between p-6 rounded-2xl bg-slate-900/40 border border-white/5 hover:border-white/10 transition-all print:border-slate-200 print:bg-white print:text-black print:p-4"
+                className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 rounded-2xl bg-slate-900/40 border border-white/5 hover:border-white/10 transition-all gap-4 print:border-slate-200 print:bg-white print:text-black print:p-4"
               >
-                <div className="flex items-center gap-6">
-                  <span className="text-3xl font-black text-slate-700 w-8 print:text-black">{index + 1}</span>
-                  <div>
-                    <h2 className="text-xl font-bold uppercase tracking-tight text-white print:text-black">
+                {/* Left Section: Rank + Title + Info */}
+                <div className="flex items-start md:items-center gap-3 md:gap-6">
+                  <span className="text-2xl md:text-3xl font-black text-slate-700 min-w-[2rem] shrink-0 print:text-black">
+                    {index + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-base md:text-xl font-bold uppercase tracking-tight text-white break-words print:text-black">
                       {item.project_name || "No Project Title"}
                     </h2>
-                    <p className="text-sm text-slate-400 font-medium print:text-slate-600">
+                    <p className="text-xs md:text-sm text-slate-400 font-medium break-words mt-0.5 print:text-slate-600">
                       Leader: {item.name || item.participant_name || "N/A"} {item.team_name ? `• ${item.team_name}` : ''}
                     </p>
                     {(item.category || item.theme) && (
-                      <p className="text-xs text-slate-500 font-semibold uppercase mt-0.5 max-w-md truncate print:text-slate-600">
+                      <p className="text-[10px] md:text-xs text-slate-500 font-semibold uppercase mt-1 break-words print:text-slate-600">
                         {item.category || item.theme}
                       </p>
                     )}
                     {item.program && (
-                      <span className="inline-block mt-1 text-[10px] font-extrabold bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded uppercase print:border-blue-300 print:text-blue-700">
+                      <span className="inline-block mt-2 text-[10px] font-extrabold bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded uppercase print:border-blue-300 print:text-blue-700">
                         {item.program}
                       </span>
                     )}
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-6 text-right">
+                {/* Right Section: Award Badge + Score Block */}
+                <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 border-t border-white/5 md:border-t-0 pt-3 md:pt-0 shrink-0">
                   {/* Award Badge Display */}
-                  <div className={`px-4 py-1.5 rounded-xl text-xs font-black tracking-widest border font-mono ${item.awardColor} print:[-webkit-print-color-adjust:exact] print:[print-color-adjust:exact]`}>
+                  <div className={`px-3 md:px-4 py-1.5 rounded-xl text-xs font-black tracking-widest border font-mono ${item.awardColor} print:[-webkit-print-color-adjust:exact] print:[print-color-adjust:exact]`}>
                     {item.award}
                   </div>
 
                   {/* Conditional Score block */}
                   {printLayout === 'with-points' && (
-                    <div className="w-24">
-                      <div className="text-3xl font-black text-blue-400 print:text-blue-600">
+                    <div className="text-right min-w-[4.5rem]">
+                      <div className="text-xl md:text-3xl font-black text-blue-400 print:text-blue-600">
                         {item.finalScore.toFixed(2)}%
                       </div>
-                      <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider print:text-slate-400">Average</div>
+                      <div className="text-[9px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider print:text-slate-400">Average</div>
                     </div>
                   )}
                 </div>
