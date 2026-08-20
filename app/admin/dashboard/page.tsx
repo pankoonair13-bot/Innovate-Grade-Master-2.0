@@ -10,7 +10,11 @@ export default function AdminDashboard() {
   const [toggleLoading, setToggleLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
 
-  // Load user role and assignment mode setting
+  // Wallpaper states
+  const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Load user role, assignment mode, and wallpaper settings
   useEffect(() => {
     async function initDashboard() {
       // 1. Fetch User Role
@@ -25,16 +29,28 @@ export default function AdminDashboard() {
         setRole(profile?.role || user.user_metadata?.role || 'judge');
       }
 
-      // 2. Fetch System Setting
-      const { data } = await supabase
+      // 2. Fetch Booth Assignment Mode Setting
+      const { data: settingData } = await supabase
         .from('system_settings')
         .select('value')
         .eq('key', 'enforce_booth_assignment')
         .maybeSingle();
 
-      if (data) {
-        setEnforceAssignment(data.value === 'true');
+      if (settingData) {
+        setEnforceAssignment(settingData.value === 'true');
       }
+
+      // 3. Fetch Active Wallpaper URL
+      const { data: wpData } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'dashboard_wallpaper')
+        .maybeSingle();
+
+      if (wpData?.value) {
+        setWallpaperUrl(wpData.value);
+      }
+
       setToggleLoading(false);
     }
 
@@ -43,7 +59,7 @@ export default function AdminDashboard() {
 
   const isJudge = role === 'judge';
 
-  // Toggle mode ON / OFF
+  // Toggle Booth Assignment Mode ON / OFF
   const toggleAssignmentMode = async () => {
     const newValue = !enforceAssignment;
     setEnforceAssignment(newValue);
@@ -59,6 +75,52 @@ export default function AdminDashboard() {
       alert("Failed to update setting: " + error.message);
       setEnforceAssignment(!newValue);
     }
+  };
+
+  // Upload custom competition wallpaper to Supabase Storage
+  const handleWallpaperUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      if (!e.target.files || e.target.files.length === 0) return;
+
+      const file = e.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `wallpaper-${Date.now()}.${fileExt}`;
+
+      // Upload image to 'wallpapers' bucket
+      const { error: uploadError } = await supabase.storage
+        .from('wallpapers')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL of uploaded image
+      const { data: { publicUrl } } = supabase.storage
+        .from('wallpapers')
+        .getPublicUrl(fileName);
+
+      // Save image URL into system_settings table
+      const { error: dbError } = await supabase
+        .from('system_settings')
+        .upsert({ key: 'dashboard_wallpaper', value: publicUrl }, { onConflict: 'key' });
+
+      if (dbError) throw dbError;
+
+      setWallpaperUrl(publicUrl);
+      alert("✅ Competition wallpaper updated successfully!");
+    } catch (err: any) {
+      alert("❌ Upload failed: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Clear current active wallpaper
+  const removeWallpaper = async () => {
+    setWallpaperUrl(null);
+    await supabase
+      .from('system_settings')
+      .upsert({ key: 'dashboard_wallpaper', value: '' }, { onConflict: 'key' });
   };
 
   const runAction = async (type: 'scores' | 'all') => {
@@ -92,26 +154,39 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-12 font-sans">
-      <div className="max-w-6xl mx-auto">
+    <div 
+      className="min-h-screen p-4 md:p-12 font-sans transition-all duration-500 bg-cover bg-center bg-no-repeat bg-fixed relative"
+      style={{
+        backgroundImage: wallpaperUrl ? `url('${wallpaperUrl}')` : 'none',
+        backgroundColor: wallpaperUrl ? 'transparent' : '#f8fafc'
+      }}
+    >
+      {/* Dark overlay for contrast when a wallpaper is active */}
+      {wallpaperUrl && (
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-[2px] pointer-events-none z-0" />
+      )}
+
+      <div className="relative z-10 max-w-6xl mx-auto">
         
         <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">
-              Admin <span className="text-blue-600">Control</span>
+            <h1 className={`text-3xl font-black tracking-tight uppercase italic ${wallpaperUrl ? 'text-white' : 'text-slate-900'}`}>
+              Admin <span className={wallpaperUrl ? 'text-blue-400' : 'text-blue-600'}>Control</span>
             </h1>
-            <p className="text-slate-500 text-sm font-medium">Innovate Grade Master 2.0 Management</p>
+            <p className={`text-sm font-medium ${wallpaperUrl ? 'text-slate-200' : 'text-slate-500'}`}>
+              Innovate Grade Master 2.0 Management
+            </p>
           </div>
-          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-200 w-fit">
+          <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200 w-fit shadow-sm">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
               Logged in as: <span className="text-blue-600 capitalize">{role || 'User'}</span>
             </span>
           </div>
         </header>
 
         {/* BOOTH ASSIGNMENT TOGGLE CONTROL */}
-        <div className="bg-white rounded-[2rem] p-6 mb-8 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="bg-white/95 backdrop-blur-md rounded-[2rem] p-6 mb-8 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className={`p-4 rounded-2xl text-2xl ${enforceAssignment ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
               {enforceAssignment ? '🔒' : '🔓'}
@@ -145,7 +220,7 @@ export default function AdminDashboard() {
           
           {/* Monitoring & Audit */}
           <Link href="/admin/audit" className="lg:col-span-3">
-            <div className="bg-blue-600 rounded-[2.5rem] p-8 shadow-xl border border-blue-400 flex flex-col md:flex-row items-center justify-between group hover:bg-blue-700 transition-all cursor-pointer">
+            <div className="bg-blue-600/95 backdrop-blur-md rounded-[2.5rem] p-8 shadow-xl border border-blue-400 flex flex-col md:flex-row items-center justify-between group hover:bg-blue-700 transition-all cursor-pointer">
               <div className="flex items-center gap-6">
                 <span className="text-5xl">📊</span>
                 <div>
@@ -160,7 +235,7 @@ export default function AdminDashboard() {
           </Link>
 
           {/* Card: Manage Participants */}
-          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col group hover:border-blue-200 transition-all">
+          <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col group hover:border-blue-200 transition-all">
             <span className="text-3xl mb-4">👥</span>
             <h2 className="text-xl font-bold text-slate-800">Participants</h2>
             <p className="text-sm text-slate-500 mt-2 mb-6">Register new teams or edit existing booth information.</p>
@@ -175,7 +250,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Card: Manage Judges */}
-          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col group hover:border-purple-200 transition-all">
+          <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col group hover:border-purple-200 transition-all">
             <span className="text-3xl mb-4">⚖️</span>
             <h2 className="text-xl font-bold text-slate-800">Judge Access</h2>
             <p className="text-sm text-slate-500 mt-2 mb-6">Assign evaluation roles to specific email accounts.</p>
@@ -191,7 +266,7 @@ export default function AdminDashboard() {
 
           {/* Card: Leaderboard & Criteria (Dynamic Fade for Judges) */}
           {isJudge ? (
-            <div className="bg-slate-100/60 rounded-[2.5rem] p-8 border border-slate-200/50 opacity-60 flex flex-col justify-between">
+            <div className="bg-slate-100/80 backdrop-blur-md rounded-[2.5rem] p-8 border border-slate-200/50 opacity-60 flex flex-col justify-between">
               <div>
                 <div className="bg-slate-200/80 w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-4">
                   🔒
@@ -203,7 +278,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col group hover:border-emerald-200 transition-all">
+            <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col group hover:border-emerald-200 transition-all">
               <span className="text-3xl mb-4">🏆</span>
               <h2 className="text-xl font-bold text-slate-800">Scoring & Rules</h2>
               <p className="text-sm text-slate-500 mt-2 mb-6">Manage judging criteria and view live competition results.</p>
@@ -218,11 +293,43 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* MAINTENANCE TOOLS */}
+          {/* MAINTENANCE & CUSTOMIZATION TOOLS */}
           <div className="md:col-span-2 lg:col-span-3 mt-4">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 ml-4">Maintenance Tools</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 flex items-center justify-between gap-4 shadow-sm">
+            <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] mb-4 ml-4 ${wallpaperUrl ? 'text-slate-200' : 'text-slate-400'}`}>
+              Maintenance & Customization
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Wallpaper Upload Control */}
+              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 border border-slate-200 flex flex-col justify-between gap-4 shadow-sm">
+                <div>
+                  <h4 className="font-bold text-slate-800">Event Wallpaper</h4>
+                  <p className="text-xs text-slate-500 mt-1">Upload a background image for this competition.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="flex-1 py-3 bg-blue-600 text-white text-center rounded-xl font-black text-[10px] uppercase cursor-pointer hover:bg-blue-700 transition-all">
+                    {uploading ? "Uploading..." : "Choose Image"}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleWallpaperUpload} 
+                      disabled={uploading} 
+                      className="hidden" 
+                    />
+                  </label>
+                  {wallpaperUrl && (
+                    <button 
+                      onClick={removeWallpaper}
+                      className="px-4 py-3 bg-red-100 text-red-600 rounded-xl font-black text-[10px] uppercase hover:bg-red-200 transition-all"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Clear Scores Tool */}
+              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 border border-slate-200 flex items-center justify-between gap-4 shadow-sm">
                 <div>
                   <h4 className="font-bold text-slate-800">Clear Scores</h4>
                   <p className="text-xs text-slate-500">Keep teams, delete marks.</p>
@@ -236,7 +343,8 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 flex items-center justify-between gap-4 shadow-sm">
+              {/* Factory Reset Tool */}
+              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 border border-slate-200 flex items-center justify-between gap-4 shadow-sm">
                 <div>
                   <h4 className="font-bold text-red-600">Factory Reset</h4>
                   <p className="text-xs text-slate-500">Delete all data.</p>
@@ -249,13 +357,14 @@ export default function AdminDashboard() {
                   {loading && status.includes('Database') ? "Busy..." : "Wipe"}
                 </button>
               </div>
+
             </div>
           </div>
 
         </div>
 
         <footer className="mt-16 text-center pb-10">
-          <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em]">
+          <p className={`text-[9px] font-black uppercase tracking-[0.5em] ${wallpaperUrl ? 'text-slate-300' : 'text-slate-300'}`}>
             Developed by Pankoo Nair • Grade Master 2.0
           </p>
         </footer>
