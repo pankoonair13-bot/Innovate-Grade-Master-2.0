@@ -94,16 +94,14 @@ export default function ParticipantsPage() {
 
   // Save Inline Edit
   const saveInlineEdit = async (id: string | number) => {
-    const payload = {
+    // Exact schema matching object - excluding invalid 'name' or 'theme' keys
+    const payload: Record<string, any> = {
       project_name: editForm.project_name.trim(),
       booth_number: editForm.booth_number.trim(),
       team_name: editForm.team_name.trim(),
-      name: editForm.team_name.trim(),
       program: editForm.program.trim(),
       project_theme: editForm.project_theme.trim(),
-      theme: editForm.project_theme.trim(),
-      supervisor_name: editForm.supervisor_name.trim(),
-      supervisor: editForm.supervisor_name.trim()
+      supervisor_name: editForm.supervisor_name.trim()
     };
 
     let { error } = await supabase
@@ -111,19 +109,16 @@ export default function ParticipantsPage() {
       .update(payload)
       .eq('id', id);
 
-    // Fallback if supervisor_name column doesn't exist
+    // Fallback if schema uses 'supervisor' column instead of 'supervisor_name'
     if (error && error.message.includes("supervisor_name")) {
-      const fallbackPayload = { ...payload };
-      delete (fallbackPayload as any).supervisor_name;
-      const fallbackResult = await supabase.from('participants').update(fallbackPayload).eq('id', id);
-      error = fallbackResult.error;
-    }
+      payload.supervisor = editForm.supervisor_name.trim();
+      delete payload.supervisor_name;
 
-    // Fallback if supervisor column doesn't exist
-    if (error && error.message.includes("supervisor")) {
-      const fallbackPayload = { ...payload };
-      delete (fallbackPayload as any).supervisor;
-      const fallbackResult = await supabase.from('participants').update(fallbackPayload).eq('id', id);
+      const fallbackResult = await supabase
+        .from('participants')
+        .update(payload)
+        .eq('id', id);
+
       error = fallbackResult.error;
     }
 
