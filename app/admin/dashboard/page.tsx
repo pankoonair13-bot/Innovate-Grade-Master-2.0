@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
@@ -8,10 +8,24 @@ export default function AdminDashboard() {
   const [status, setStatus] = useState('');
   const [enforceAssignment, setEnforceAssignment] = useState(false);
   const [toggleLoading, setToggleLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
 
-  // Load current assignment mode setting
+  // Load user role and assignment mode setting
   useEffect(() => {
-    async function fetchSetting() {
+    async function initDashboard() {
+      // 1. Fetch User Role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        setRole(profile?.role || user.user_metadata?.role || 'judge');
+      }
+
+      // 2. Fetch System Setting
       const { data } = await supabase
         .from('system_settings')
         .select('value')
@@ -23,8 +37,11 @@ export default function AdminDashboard() {
       }
       setToggleLoading(false);
     }
-    fetchSetting();
+
+    initDashboard();
   }, []);
+
+  const isJudge = role === 'judge';
 
   // Toggle mode ON / OFF
   const toggleAssignmentMode = async () => {
@@ -40,7 +57,7 @@ export default function AdminDashboard() {
 
     if (error) {
       alert("Failed to update setting: " + error.message);
-      setEnforceAssignment(!newValue); // revert on error
+      setEnforceAssignment(!newValue);
     }
   };
 
@@ -87,7 +104,9 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-200 w-fit">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Live</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              Logged in as: <span className="text-blue-600 capitalize">{role || 'User'}</span>
+            </span>
           </div>
         </header>
 
@@ -170,20 +189,34 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Card: Leaderboard & Criteria */}
-          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col group hover:border-emerald-200 transition-all">
-            <span className="text-3xl mb-4">🏆</span>
-            <h2 className="text-xl font-bold text-slate-800">Scoring & Rules</h2>
-            <p className="text-sm text-slate-500 mt-2 mb-6">Manage judging criteria and view live competition results.</p>
-            <div className="mt-auto flex flex-col gap-2">
-              <Link href="/leaderboard" className="w-full py-3 bg-emerald-600 text-white text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-emerald-700 transition-colors">
-                Live Standings
-              </Link>
-              <Link href="/admin/criteria" className="w-full py-3 bg-slate-50 text-slate-600 text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-slate-100 transition-colors">
-                Edit Criteria
-              </Link>
+          {/* Card: Leaderboard & Criteria (Dynamic Fade for Judges) */}
+          {isJudge ? (
+            <div className="bg-slate-100/60 rounded-[2.5rem] p-8 border border-slate-200/50 opacity-60 flex flex-col justify-between">
+              <div>
+                <div className="bg-slate-200/80 w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-4">
+                  🔒
+                </div>
+                <h2 className="text-xl font-bold text-slate-400 mb-2">Live Leaderboard</h2>
+                <p className="text-slate-400 text-sm">
+                  This setting is restricted to authorized Admins only.
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col group hover:border-emerald-200 transition-all">
+              <span className="text-3xl mb-4">🏆</span>
+              <h2 className="text-xl font-bold text-slate-800">Scoring & Rules</h2>
+              <p className="text-sm text-slate-500 mt-2 mb-6">Manage judging criteria and view live competition results.</p>
+              <div className="mt-auto flex flex-col gap-2">
+                <Link href="/leaderboard" className="w-full py-3 bg-emerald-600 text-white text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-emerald-700 transition-colors">
+                  Live Standings
+                </Link>
+                <Link href="/admin/criteria" className="w-full py-3 bg-slate-50 text-slate-600 text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-slate-100 transition-colors">
+                  Edit Criteria
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* MAINTENANCE TOOLS */}
           <div className="md:col-span-2 lg:col-span-3 mt-4">
