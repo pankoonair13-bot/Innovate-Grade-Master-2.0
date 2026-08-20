@@ -18,25 +18,34 @@ export default function CreateParticipantPage() {
     e.preventDefault();
     setLoading(true);
 
+    const trimmedSupervisor = supervisor.trim();
+
+    // Included both supervisor key variations to cover all schema requirements
     const payload = { 
       booth_number: booth.trim(),
       project_name: project.trim(), 
       team_name: team.trim(), 
       program: program.trim(),
       project_theme: theme.trim(),
-      supervisor_name: supervisor.trim()
+      supervisor: trimmedSupervisor,
+      supervisor_name: trimmedSupervisor
     };
 
-    // Try inserting with 'supervisor_name' first
     let { error } = await supabase.from('participants').insert([payload]);
 
-    // Fallback if supervisor column is named 'supervisor' in database
+    // Fallback attempt removing supervisor_name if database rejects it
     if (error && error.message.includes("supervisor_name")) {
-      const fallbackPayload = {
-        ...payload,
-        supervisor: supervisor.trim()
-      };
+      const fallbackPayload = { ...payload };
       delete (fallbackPayload as any).supervisor_name;
+
+      const fallbackResult = await supabase.from('participants').insert([fallbackPayload]);
+      error = fallbackResult.error;
+    }
+
+    // Fallback attempt removing supervisor if database rejects it
+    if (error && error.message.includes("supervisor")) {
+      const fallbackPayload = { ...payload };
+      delete (fallbackPayload as any).supervisor;
 
       const fallbackResult = await supabase.from('participants').insert([fallbackPayload]);
       error = fallbackResult.error;
