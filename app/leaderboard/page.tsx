@@ -147,34 +147,37 @@ export default function Leaderboard() {
   const exportToExcel = () => {
     if (filteredStandings.length === 0) return alert("No data available to export!");
 
+    // Cleaned payload without 'Leader Name'
     const excelData = filteredStandings.map((item, index) => ({
       "Rank": index + 1,
-      "Project Title": item.project_name || "No Project Title",
-      "Leader Name": item.name || item.participant_name || "N/A",
-      "Team": item.team_name || "N/A",
-      "Supervisor": item.supervisor_name || item.supervisor || "N/A",
-      "Program": item.program || "N/A",
-      "Theme/Category": item.category || item.theme || "N/A",
+      "Project Title": (item.project_name || "No Project Title").toUpperCase(),
+      "Team": (item.team_name || "N/A").toUpperCase(),
+      "Supervisor": (item.supervisor_name || item.supervisor || "N/A").toUpperCase(),
+      "Program": (item.program || "N/A").toUpperCase(),
+      "Theme/Category": (item.category || item.theme || "N/A").toUpperCase(),
       "Award Medal": item.award,
       "Average Score": `${item.finalScore.toFixed(2)}%`
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Standings");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Leaderboard Standings");
 
-    const columnWidths = [
-      { wch: 6 },
-      { wch: 35 },
-      { wch: 25 },
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 10 },
-      { wch: 45 },
-      { wch: 14 },
-      { wch: 15 }
+    // Dynamic calculation for column widths to make Excel look clean and readable
+    const max_width = (key: string) => {
+      return excelData.reduce((w, r) => Math.max(w, String((r as any)[key] || '').length), key.length) + 4;
+    };
+
+    worksheet['!cols'] = [
+      { wch: 8 },                       // Rank
+      { wch: max_width("Project Title") }, // Project Title
+      { wch: max_width("Team") },          // Team
+      { wch: max_width("Supervisor") },    // Supervisor
+      { wch: max_width("Program") },       // Program
+      { wch: max_width("Theme/Category") },// Theme/Category
+      { wch: 16 },                      // Award Medal
+      { wch: 16 }                       // Average Score
     ];
-    worksheet['!cols'] = columnWidths;
 
     XLSX.writeFile(workbook, `EDIAS_2026_Leaderboard.xlsx`);
   };
