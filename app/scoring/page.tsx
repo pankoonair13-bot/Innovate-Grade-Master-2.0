@@ -33,7 +33,20 @@ export default function ScoringPanel() {
       }
     }
 
-    // 2. Fetch Assignment Enforcement Mode from system_settings
+    // 2. Fetch Assigned Competitions for current Judge
+    let assignedCompIds: string[] = [];
+    if (currentUser) {
+      const { data: compJudgeData } = await supabase
+        .from('competition_judges')
+        .select('competition_id')
+        .eq('judge_id', currentUser.id);
+
+      if (compJudgeData && compJudgeData.length > 0) {
+        assignedCompIds = compJudgeData.map(c => c.competition_id);
+      }
+    }
+
+    // 3. Fetch Assignment Enforcement Mode from system_settings
     const { data: setting } = await supabase
       .from('system_settings')
       .select('value')
@@ -45,7 +58,7 @@ export default function ScoringPanel() {
 
     if (currentUser) {
       if (modeActive) {
-        // --- ASSIGNMENT MODE: ON ---
+        // --- BOOTH ASSIGNMENT MODE: ON ---
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -90,28 +103,37 @@ export default function ScoringPanel() {
         }
 
         if (assignedBooths.length > 0) {
-          const { data: pData } = await supabase
+          let query = supabase
             .from('participants')
             .select('*')
-            .in('booth_number', assignedBooths)
-            .order('booth_number');
+            .in('booth_number', assignedBooths);
 
+          // If judge is also assigned specific competition(s), filter by competition_id as well
+          if (assignedCompIds.length > 0) {
+            query = query.in('competition_id', assignedCompIds);
+          }
+
+          const { data: pData } = await query.order('booth_number');
           setParticipants(pData || []);
         } else {
           setParticipants([]);
         }
       } else {
-        // --- ASSIGNMENT MODE: OFF ---
-        const { data: allPData } = await supabase
+        // --- COMPETITION ASSIGNMENT FILTER ---
+        let query = supabase
           .from('participants')
-          .select('*')
-          .order('booth_number');
-        
+          .select('*');
+
+        if (assignedCompIds.length > 0) {
+          query = query.in('competition_id', assignedCompIds);
+        }
+
+        const { data: allPData } = await query.order('booth_number');
         setParticipants(allPData || []);
       }
     }
 
-    // 3. Fetch scoring criteria
+    // 4. Fetch scoring criteria
     const { data: cData } = await supabase
       .from('criteria')
       .select('*')
@@ -130,7 +152,7 @@ export default function ScoringPanel() {
   useEffect(() => {
     loadData();
 
-    // 4. Realtime listener to sync when Admin changes mode switch
+    // Realtime listener to sync when Admin changes mode switch
     const channel = supabase
       .channel('realtime_mode_toggle')
       .on(
@@ -250,7 +272,7 @@ export default function ScoringPanel() {
                 ? "-- Loading Projects... --" 
                 : participants.length > 0 
                 ? "-- Choose Participant --" 
-                : "-- No Projects Found --"}
+                : "-- No Assigned Projects Found --"}
             </option>
             {participants.map(p => {
               const isScored = scoredIds.has(p.id);
@@ -262,7 +284,7 @@ export default function ScoringPanel() {
             })}
           </select>
 
-          {/* Active Participant Details Card (Cleaned to Title + Booth Number Only) */}
+          {/* Active Participant Details Card */}
           {selectedParticipant && (
             <div className="mt-4 p-5 rounded-xl bg-[#0b1329] text-white flex items-center justify-between gap-4 shadow-md">
               <h3 className="text-base md:text-lg font-black uppercase tracking-tight text-blue-400 leading-tight">

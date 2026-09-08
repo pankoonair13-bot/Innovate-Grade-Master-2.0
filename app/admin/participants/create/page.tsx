@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
 export default function CreateParticipantPage() {
+  const [competitions, setCompetitions] = useState<any[]>([]);
+  const [selectedCompetition, setSelectedCompetition] = useState('');
   const [booth, setBooth] = useState('');
   const [project, setProject] = useState('');
   const [team, setTeam] = useState('');
@@ -14,13 +16,37 @@ export default function CreateParticipantPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // Fetch competitions on load
+  useEffect(() => {
+    fetchCompetitions();
+  }, []);
+
+  async function fetchCompetitions() {
+    const { data, error } = await supabase
+      .from('competitions')
+      .select('id, name, status')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading competitions:', error.message);
+    } else if (data && data.length > 0) {
+      setCompetitions(data);
+      // Default to the first competition
+      setSelectedCompetition(data[0].id);
+    }
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!selectedCompetition) {
+      return alert("Please select a competition!");
+    }
 
+    setLoading(true);
     const trimmedSupervisor = supervisor.trim();
 
     const payload = { 
+      competition_id: selectedCompetition,
       booth_number: booth.trim(),
       project_name: project.trim(), 
       team_name: team.trim(),
@@ -55,7 +81,7 @@ export default function CreateParticipantPage() {
       alert("❌ Error adding participant: " + error.message);
     } else {
       alert("✅ Participant registered successfully!");
-      router.push('/admin/manage-participants');
+      router.push('/admin/participants');
     }
     setLoading(false);
   };
@@ -70,6 +96,29 @@ export default function CreateParticipantPage() {
         </h1>
         
         <form onSubmit={handleCreate} className="space-y-5">
+          {/* Competition Selector */}
+          <div>
+            <label className="block text-[11px] font-black uppercase tracking-wider text-blue-700 mb-2">
+              SELECT COMPETITION
+            </label>
+            <select
+              required
+              value={selectedCompetition}
+              onChange={(e) => setSelectedCompetition(e.target.value)}
+              className="w-full p-4 rounded-2xl bg-blue-50 border border-blue-300 text-black font-extrabold text-sm focus:bg-white focus:border-blue-600 outline-none transition-all cursor-pointer"
+            >
+              {competitions.length === 0 ? (
+                <option value="">No competitions found. Create one first!</option>
+              ) : (
+                competitions.map((comp) => (
+                  <option key={comp.id} value={comp.id}>
+                    {comp.name} ({comp.status.toUpperCase()})
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
           {/* Booth Number */}
           <div>
             <label className="block text-[11px] font-black uppercase tracking-wider text-slate-900 mb-2">
@@ -85,7 +134,7 @@ export default function CreateParticipantPage() {
             />
           </div>
 
-          {/* Program (DET, DTK, etc.) */}
+          {/* Program */}
           <div>
             <label className="block text-[11px] font-black uppercase tracking-wider text-slate-900 mb-2">
               PROGRAM (DET, DTK, DEP.)
@@ -163,7 +212,7 @@ export default function CreateParticipantPage() {
           {/* Confirm Button */}
           <button 
             type="submit"
-            disabled={loading}
+            disabled={loading || competitions.length === 0}
             className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all mt-4 disabled:opacity-50 cursor-pointer"
           >
             {loading ? "REGISTERING..." : "CONFIRM REGISTRATION"}
