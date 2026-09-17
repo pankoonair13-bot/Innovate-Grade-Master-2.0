@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function ScoringPanel() {
@@ -14,51 +14,54 @@ export default function ScoringPanel() {
   const [isEnforced, setIsEnforced] = useState(false);
   const [scoredIds, setScoredIds] = useState<Set<number>>(new Set());
 
-  const loadData = async () => {
+  // Memoized loadData to prevent recreation on every re-render
+  const loadData = useCallback(async () => {
     setLoading(true);
-    
-    // 1. Get current logged-in user
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    setUser(currentUser);
+    try {
+      // 1. Get current user
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
 
-    // Fetch existing scores by this judge to build the scored status lookup
-    if (currentUser) {
-      const { data: judgeScores } = await supabase
-        .from('scores')
-        .select('participant_id')
-        .eq('judge_id', currentUser.id);
-
-      if (judgeScores) {
-        setScoredIds(new Set(judgeScores.map(s => s.participant_id)));
+      if (!currentUser) {
+        setLoading(false);
+        return;
       }
-    }
 
-    // 2. Fetch Assigned Competitions for current Judge
-    let assignedCompIds: string[] = [];
-    if (currentUser) {
-      const { data: compJudgeData } = await supabase
-        .from('competition_judges')
-        .select('competition_id')
-        .eq('judge_id', currentUser.id);
+      // 2. Fetch System Settings, Scores, and Criteria in Parallel
+      const [settingRes, scoresRes, criteriaRes] = await Promise.all([
+        supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'enforce_booth_assignment')
+          .maybeSingle(),
+        supabase
+          .from('scores')
+          .select('participant_id')
+          .eq('judge_id', currentUser.id),
+        supabase
+          .from('criteria')
+          .select('*')
+          .order('display_order')
+      ]);
 
-      if (compJudgeData && compJudgeData.length > 0) {
-        assignedCompIds = compJudgeData.map(c => c.competition_id);
+      // Set Scored Participants
+      if (scoresRes.data) {
+        setScoredIds(new Set(scoresRes.data.map(s => s.participant_id)));
       }
-    }
 
-    // 3. Fetch Assignment Enforcement Mode from system_settings
-    const { data: setting } = await supabase
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'enforce_booth_assignment')
-      .maybeSingle();
+      // Set Criteria & Initial Marks
+      if (criteriaRes.data) {
+        setCriteria(criteriaRes.data);
+        const initialMarks: Record<number, number> = {};
+        criteriaRes.data.forEach(c => (initialMarks[c.id] = 0));
+        setMarks(initialMarks);
+      }
 
-    const modeActive = setting?.value === 'true';
-    setIsEnforced(modeActive);
+      const modeActive = settingRes.data?.value === 'true';
+      setIsEnforced(modeActive);
 
-    if (currentUser) {
+      // 3. Fetch Participants based on Enforcement Toggle
       if (modeActive) {
-        // --- BOOTH ASSIGNMENT MODE: ON ---
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -69,18 +72,14 @@ export default function ScoringPanel() {
         const email = (currentUser.email || '').toLowerCase();
         const emailPrefix = email.split('@')[0].toLowerCase();
         const emailPrefixNoSpace = emailPrefix.replace(/\s+/g, '');
-        
         const fullName = (profile?.full_name || profile?.name || profile?.username || '').toLowerCase();
         const fullNameNoSpace = fullName.replace(/\s+/g, '');
 
-        const { data: assignments, error: aErr } = await supabase
+        const { data: assignments } = await supabase
           .from('judge_assignments')
           .select('*');
 
-        if (aErr) console.error("Error fetching assignments:", aErr);
-
         let assignedBooths: string[] = [];
-
         if (assignments && assignments.length > 0) {
           assignedBooths = assignments
             .filter((a: any) => {
@@ -103,80 +102,55 @@ export default function ScoringPanel() {
         }
 
         if (assignedBooths.length > 0) {
-          let query = supabase
+          const { data: pData } = await supabase
             .from('participants')
             .select('*')
-            .in('booth_number', assignedBooths);
-
-          // If judge is also assigned specific competition(s), filter by competition_id as well
-          if (assignedCompIds.length > 0) {
-            query = query.in('competition_id', assignedCompIds);
-          }
-
-          const { data: pData } = await query.order('booth_number');
+            .in('booth_number', assignedBooths)
+            .order('booth_number');
           setParticipants(pData || []);
         } else {
           setParticipants([]);
         }
       } else {
-        // --- COMPETITION ASSIGNMENT FILTER ---
-        let query = supabase
+        const { data: allPData } = await supabase
           .from('participants')
-          .select('*');
-
-        if (assignedCompIds.length > 0) {
-          query = query.in('competition_id', assignedCompIds);
-        }
-
-        const { data: allPData } = await query.order('booth_number');
+          .select('*')
+          .order('booth_number');
         setParticipants(allPData || []);
       }
+    } catch (err) {
+      console.error("Error loading scoring panel data:", err);
+    } finally {
+      setLoading(false);
     }
-
-    // 4. Fetch scoring criteria
-    const { data: cData } = await supabase
-      .from('criteria')
-      .select('*')
-      .order('display_order');
-    
-    if (cData) {
-      setCriteria(cData);
-      const initial: any = {};
-      cData.forEach(c => initial[c.id] = 0);
-      setMarks(initial);
-    }
-
-    setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
 
-    // Realtime listener to sync when Admin changes mode switch
+    // Sync state when Admin updates system settings
     const channel = supabase
       .channel('realtime_mode_toggle')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'system_settings' },
-        () => {
-          loadData();
-        }
+        () => loadData()
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [loadData]);
 
-  // Handle participant dropdown changes
+  // Dropdown Selection Handler
   const handleSelectParticipant = async (id: string) => {
     setSelectedId(id);
-    
+
     if (!id) {
       setSelectedParticipant(null);
-      const resetMarks: any = {};
-      criteria.forEach(c => resetMarks[c.id] = 0);
+      const resetMarks: Record<number, number> = {};
+      criteria.forEach(c => (resetMarks[c.id] = 0));
       setMarks(resetMarks);
       return;
     }
@@ -184,20 +158,19 @@ export default function ScoringPanel() {
     const found = participants.find(p => String(p.id) === String(id));
     setSelectedParticipant(found || null);
 
-    // If the judge already scored this participant, load their breakdown
     if (user) {
       const { data: existing } = await supabase
         .from('scores')
         .select('breakdown')
-        .eq('participant_id', parseInt(id))
+        .eq('participant_id', parseInt(id, 10))
         .eq('judge_id', user.id)
         .maybeSingle();
 
       if (existing?.breakdown) {
         setMarks(existing.breakdown);
       } else {
-        const resetMarks: any = {};
-        criteria.forEach(c => resetMarks[c.id] = 0);
+        const resetMarks: Record<number, number> = {};
+        criteria.forEach(c => (resetMarks[c.id] = 0));
         setMarks(resetMarks);
       }
     }
@@ -214,7 +187,7 @@ export default function ScoringPanel() {
     setSubmitting(true);
     try {
       const payload = {
-        participant_id: parseInt(selectedId),
+        participant_id: parseInt(selectedId, 10),
         judge_id: user.id,
         score: calculateTotal(),
         breakdown: marks
@@ -227,10 +200,10 @@ export default function ScoringPanel() {
       if (upsertError) throw upsertError;
 
       alert("🎉 Score Submitted Successfully!");
-      window.location.reload(); 
+      loadData();
     } catch (err: any) {
-      console.error("Detailed Submission Error Object:", err);
-      const message = err?.message || err?.details || err?.hint || JSON.stringify(err);
+      console.error("Submission Error:", err);
+      const message = err?.message || err?.details || err?.hint || "Network or DB error.";
       alert("Submission Failed: " + message);
     } finally {
       setSubmitting(false);
@@ -255,7 +228,7 @@ export default function ScoringPanel() {
           </div>
         </div>
 
-        {/* Project Selection Box */}
+        {/* Project Selection */}
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-2 border-blue-100 mb-6 md:mb-8">
           <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">
             {isEnforced 
@@ -272,7 +245,7 @@ export default function ScoringPanel() {
                 ? "-- Loading Projects... --" 
                 : participants.length > 0 
                 ? "-- Choose Participant --" 
-                : "-- No Assigned Projects Found --"}
+                : "-- No Projects Found --"}
             </option>
             {participants.map(p => {
               const isScored = scoredIds.has(p.id);
@@ -284,7 +257,6 @@ export default function ScoringPanel() {
             })}
           </select>
 
-          {/* Active Participant Details Card */}
           {selectedParticipant && (
             <div className="mt-4 p-5 rounded-xl bg-[#0b1329] text-white flex items-center justify-between gap-4 shadow-md">
               <h3 className="text-base md:text-lg font-black uppercase tracking-tight text-blue-400 leading-tight">

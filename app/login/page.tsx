@@ -15,61 +15,72 @@ export default function LoginPage() {
     setLoading(true);
     setErrorMsg('');
 
-    // 💡 CUSTOM ROUTING LOGIC:
-    let emailToAuth = "";
-    const input = username.trim().toLowerCase().replace(/\s+/g, '');
+    const rawInput = username.trim();
+    const input = rawInput.toLowerCase().replace(/\s+/g, '');
 
-    if (input === 'pankoo') {
-      // Automatically maps 'pankoo' to your actual admin email in Auth
-      emailToAuth = 'pankoo@event.com';
-    } else if (input.includes('@')) {
-      // Use full email if provided
-      emailToAuth = input;
+    // Determine target email candidates
+    let emailCandidates: string[] = [];
+    if (input.includes('@')) {
+      emailCandidates = [input];
+    } else if (input === 'pankoo') {
+      emailCandidates = ['pankoo@event.com', 'pankoo@master.com'];
     } else {
-      // Default to judge format for other usernames
-      emailToAuth = `${input}@master.com`;
+      emailCandidates = [`${input}@master.com`];
     }
 
     try {
-      // 1. Sign in to Supabase Auth
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: emailToAuth,
-        password: password,
-      });
+      let activeUser = null;
+      let lastAuthError = null;
 
-      if (authError) throw new Error("Invalid username or password.");
+      // Try candidates
+      for (const email of emailCandidates) {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
 
-      if (data.user) {
-        // 2. Fetch role and active status from 'profiles' table using User UUID
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, is_active')
-          .eq('id', data.user.id)
-          .maybeSingle();
-
-        if (profileError) throw new Error("Database error. Please try again.");
-
-        // 3. Check if account exists and whether it's active
-        if (!profile) {
-          setErrorMsg("No profile found. Check your profiles table in Supabase.");
-          await supabase.auth.signOut();
-          return;
-        }
-
-        if (profile.is_active === false) {
-          // Immediately revoke active session if disabled
-          await supabase.auth.signOut();
-          throw new Error("Your account has been disabled by the administrator.");
-        }
-
-        // 4. Direct users to the correct page based on their role
-        if (profile.role === 'admin') {
-          router.push('/admin/dashboard');
-        } else if (profile.role === 'judge') {
-          router.push('/scoring');
+        if (!authError && authData.user) {
+          activeUser = authData.user;
+          break;
         } else {
-          setErrorMsg(`Role '${profile.role}' not recognized.`);
+          lastAuthError = authError;
         }
+      }
+
+      if (!activeUser) {
+        console.error("Supabase Auth Detailed Error:", lastAuthError);
+        const detailedMsg = lastAuthError?.message || "Invalid username or password.";
+        throw new Error(`Auth Error: ${detailedMsg}`);
+      }
+
+      // Fetch profile and verify role & active status
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, is_active')
+        .eq('id', activeUser.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Profile Query Error:", profileError);
+        throw new Error("Failed to load user profile permissions.");
+      }
+
+      if (!profile) {
+        throw new Error("No profile found for this account in the database.");
+      }
+
+      if (profile.is_active === false) {
+        await supabase.auth.signOut();
+        throw new Error("Your account has been disabled by the administrator.");
+      }
+
+      // Redirect user to target dashboard
+      if (profile.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (profile.role === 'judge') {
+        router.push('/scoring');
+      } else {
+        setErrorMsg(`Role '${profile.role}' not recognized.`);
       }
     } catch (err: any) {
       setErrorMsg(err.message);
@@ -81,7 +92,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
       <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100 w-full max-w-sm">
-        
         <div className="text-center mb-8">
           <div className="bg-blue-600 text-white w-12 h-12 flex items-center justify-center rounded-2xl text-xl font-black mx-auto mb-4 shadow-lg shadow-blue-100 italic">
             G
