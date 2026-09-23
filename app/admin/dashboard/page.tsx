@@ -1,7 +1,9 @@
 "use client";
+
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
@@ -9,9 +11,13 @@ export default function AdminDashboard() {
   const [enforceAssignment, setEnforceAssignment] = useState(false);
   const [toggleLoading, setToggleLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
+  const [hasMounted, setHasMounted] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   // Load user role and assignment mode settings
   useEffect(() => {
+    setHasMounted(true);
+
     async function initDashboard() {
       // 1. Fetch User Role
       const { data: { user } } = await supabase.auth.getUser();
@@ -62,12 +68,12 @@ export default function AdminDashboard() {
     }
   };
 
-  // Fixed Deletion Handler (Avoids UUID syntax error by targeting column values directly)
+  // Fixed Sequential Deletion Handler
   const runAction = async (type: 'scores' | 'all') => {
     const isConfirmed = confirm(
       type === 'scores' 
-      ? "⚠️ RESET SCORES: This will clear the leaderboard but keep participants. Proceed?" 
-      : "🚫 FACTORY RESET: This deletes EVERYTHING (Participants & Scores). Proceed?"
+      ? "⚠️ RESET SCORES: This will clear all live leaderboard scores but keep participants and judges. Proceed?" 
+      : "🚫 FACTORY RESET: This will completely delete ALL participants, judges, booth assignments, and scores. Proceed?"
     );
     
     if (!isConfirmed) return;
@@ -77,45 +83,94 @@ export default function AdminDashboard() {
 
     try {
       if (type === 'scores') {
-        // Safe query that target all scores without triggering UUID casting errors on ID
-        const { error } = await supabase.from('scores').delete().gte('score', 0);
-        if (error) throw error;
+        const { error: scoresError } = await supabase
+          .from('scores')
+          .delete()
+          .not('id', 'is', null);
+
+        if (scoresError) throw scoresError;
       } else {
-        // Delete all scores first to prevent foreign key constraint violations
-        const { error: scoresError } = await supabase.from('scores').delete().gte('score', 0);
+        // Step 1: Clear all scores
+        const { error: scoresError } = await supabase
+          .from('scores')
+          .delete()
+          .not('id', 'is', null);
+
         if (scoresError) throw scoresError;
 
-        // Delete all participants safely by timestamp filter
-        const { error: partError } = await supabase.from('participants').delete().gt('created_at', '1970-01-01T00:00:00Z');
+        // Step 2: Delete all booth assignments
+        const { error: assignError } = await supabase
+          .from('judge_assignments')
+          .delete()
+          .not('id', 'is', null);
+
+        if (assignError) throw assignError;
+
+        // Step 3: Delete all participants (Teams/Booths)
+        const { error: partError } = await supabase
+          .from('participants')
+          .delete()
+          .not('id', 'is', null);
+
         if (partError) throw partError;
+
+        // Step 4: Delete all judge profiles
+        const { error: judgeError } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('role', 'judge');
+
+        if (judgeError) throw judgeError;
       }
+
       alert("✅ Operation Successful");
       window.location.reload();
     } catch (err: any) {
-      alert("❌ Error: " + err.message);
+      alert("❌ Error executing reset: " + err.message);
     } finally {
       setLoading(false);
       setStatus('');
     }
   };
 
+  const isButtonDisabled = !hasMounted || toggleLoading;
+
   return (
     <div className="min-h-screen p-4 md:p-12 font-sans bg-slate-50 relative">
       <div className="relative z-10 max-w-6xl mx-auto">
         
+        {/* HEADER WITH LOGO */}
         <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight uppercase italic text-slate-900">
-              Admin <span className="text-blue-600">Control</span>
-            </h1>
-            <p className="text-sm font-medium text-slate-500">
-              Innovate Grade Master 2.0 Management
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="relative w-14 h-14 flex-shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
+              {!imgError ? (
+                <Image 
+                  src="/logo.png" 
+                  alt="Innovate Grade Master Logo" 
+                  width={56} 
+                  height={56} 
+                  className="object-contain"
+                  priority
+                  onError={() => setImgError(true)}
+                />
+              ) : (
+                <span className="text-2xl">🎓</span>
+              )}
+            </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight uppercase italic text-slate-900">
+                Admin <span className="text-blue-600">Control</span>
+              </h1>
+              <p className="text-sm font-medium text-slate-500">
+                Innovate Grade Master 2.0 Management
+              </p>
+            </div>
           </div>
+
           <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-200 w-fit shadow-sm">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-              Logged in as: <span className="text-blue-600 capitalize">{role || 'User'}</span>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest" suppressHydrationWarning>
+              Logged in as: <span className="text-blue-600 capitalize">{hasMounted ? (role || 'User') : '...'}</span>
             </span>
           </div>
         </header>
@@ -140,14 +195,15 @@ export default function AdminDashboard() {
 
           <button
             onClick={toggleAssignmentMode}
-            disabled={toggleLoading}
+            disabled={isButtonDisabled}
+            suppressHydrationWarning
             className={`w-full md:w-auto px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm ${
               enforceAssignment 
                 ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-95" 
                 : "bg-slate-200 text-slate-700 hover:bg-slate-300 active:scale-95"
             }`}
           >
-            {toggleLoading ? "Loading..." : `Assignment Mode: ${enforceAssignment ? "ON" : "OFF"}`}
+            {isButtonDisabled ? "Loading..." : `Assignment Mode: ${enforceAssignment ? "ON" : "OFF"}`}
           </button>
         </div>
 
@@ -200,7 +256,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Card: Leaderboard & Criteria */}
-          {isJudge ? (
+          {hasMounted && isJudge ? (
             <div className="bg-slate-100 rounded-[2.5rem] p-8 border border-slate-200/50 opacity-60 flex flex-col justify-between">
               <div>
                 <div className="bg-slate-200 w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-4">
@@ -239,7 +295,7 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-3xl p-6 border border-slate-200 flex items-center justify-between gap-4 shadow-sm">
                 <div>
                   <h4 className="font-bold text-slate-800">Clear Scores</h4>
-                  <p className="text-xs text-slate-500">Keep teams, delete marks.</p>
+                  <p className="text-xs text-slate-500">Keep teams and judges, delete live leaderboard marks.</p>
                 </div>
                 <button 
                   onClick={() => runAction('scores')}
@@ -254,14 +310,14 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-3xl p-6 border border-slate-200 flex items-center justify-between gap-4 shadow-sm">
                 <div>
                   <h4 className="font-bold text-red-600">Factory Reset</h4>
-                  <p className="text-xs text-slate-500">Delete all data.</p>
+                  <p className="text-xs text-slate-500">Delete all participants, judges, and scores.</p>
                 </div>
                 <button 
                   onClick={() => runAction('all')}
                   disabled={loading}
                   className="px-6 py-3 bg-red-100 text-red-600 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {loading && status.includes('Database') ? "Busy..." : "Wipe"}
+                  {loading && status.includes('Database') ? "Busy..." : "Wipe All"}
                 </button>
               </div>
 

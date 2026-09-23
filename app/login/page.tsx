@@ -1,5 +1,6 @@
 "use client"
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -93,9 +94,19 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
       <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100 w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="bg-blue-600 text-white w-12 h-12 flex items-center justify-center rounded-2xl text-xl font-black mx-auto mb-4 shadow-lg shadow-blue-100 italic">
-            G
+          
+          {/* LOGO WITH IMAGE */}
+          <div className="relative w-14 h-14 mx-auto mb-4 flex items-center justify-center">
+            <Image 
+              src="/logo.png" 
+              alt="Grade Master Logo" 
+              width={56} 
+              height={56} 
+              className="object-contain"
+              priority
+            />
           </div>
+
           <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">
             Grade <span className="text-blue-600">Master 2.0</span>
           </h1>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -58,12 +59,21 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50 h-16">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
         
-        {/* LOGO */}
+        {/* LOGO WITH IMAGE */}
         <Link 
           href={role === 'admin' ? "/admin/dashboard" : "/"} 
           className="flex items-center gap-2 cursor-pointer"
         >
-          <div className="bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-lg text-sm font-black shadow-sm">G</div>
+          <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center overflow-hidden">
+            <Image 
+              src="/logo.png" 
+              alt="Grade Master Logo" 
+              width={32} 
+              height={32} 
+              className="object-contain"
+              priority
+            />
+          </div>
           <span className="font-bold text-lg hidden xs:block">Grade Master 2.0</span>
         </Link>
 
