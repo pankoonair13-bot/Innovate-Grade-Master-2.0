@@ -86,18 +86,9 @@ export default function Navbar() {
           ) : (
             <>
               {role === 'admin' && (
-                <>
-                  <Link href="/admin/criteria" className="hidden md:block text-gray-500 hover:text-blue-600 text-sm font-medium">Criteria</Link>
-                  <Link href="/admin/participants" className="hidden md:block text-gray-500 hover:text-blue-600 text-sm font-medium">Participants</Link>
-                  
-                  <Link href="/admin/dashboard" className="text-orange-600 font-black border border-orange-200 rounded-xl bg-orange-50 px-2 py-1 text-[9px] md:text-[10px] whitespace-nowrap">
-                    DASHBOARD
-                  </Link>
-                  
-                  <Link href="/leaderboard" className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold md:text-xs">
-                    LIVE
-                  </Link>
-                </>
+                <Link href="/leaderboard" className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold md:text-xs">
+                  LIVE
+                </Link>
               )}
               {role && (
                 <button onClick={handleLogout} className="text-red-500 text-[9px] md:text-[10px] font-black uppercase px-2 cursor-pointer">
