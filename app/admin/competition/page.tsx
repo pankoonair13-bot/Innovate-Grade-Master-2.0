@@ -1,10 +1,10 @@
 "use client";
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function ManageCompetitions() {
-  const router = useRouter();
   const [competitions, setCompetitions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -46,43 +46,51 @@ export default function ManageCompetitions() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white p-6 md:p-10 font-sans">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 p-4 md:p-12 font-sans">
+      <div className="max-w-4xl mx-auto space-y-6">
         
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-black italic text-blue-500">COMPETITION MANAGEMENT</h1>
-          <p className="text-slate-400 text-sm">Create and manage active event instances</p>
+          <Link
+            href="/admin"
+            className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline mb-1 inline-block"
+          >
+            ← Back to Admin Dashboard
+          </Link>
+          <h1 className="text-3xl font-black italic text-slate-900 uppercase tracking-tight">
+            Competition <span className="text-indigo-600">Management</span>
+          </h1>
+          <p className="text-slate-500 text-xs font-medium mt-1">Create and manage active event instances</p>
         </div>
 
         {/* Create Form */}
-        <form onSubmit={handleCreateCompetition} className="bg-slate-900 border border-white/10 p-6 rounded-2xl space-y-4">
-          <h2 className="text-lg font-bold text-white">Create New Competition</h2>
+        <form onSubmit={handleCreateCompetition} className="bg-white border border-slate-200/80 p-6 md:p-8 rounded-2xl shadow-sm space-y-4">
+          <h2 className="text-lg font-bold text-slate-800">Create New Competition</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1">Competition Name</label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Competition Name</label>
               <input
                 type="text"
                 placeholder="e.g. EDIAS 2026"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-medium focus:border-indigo-600 focus:bg-white outline-none transition-all placeholder:text-slate-400"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1">Unique Code / Slug</label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Unique Code / Slug</label>
               <input
                 type="text"
                 placeholder="e.g. edias-2026"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-medium focus:border-indigo-600 focus:bg-white outline-none transition-all placeholder:text-slate-400"
               />
             </div>
           </div>
           <button
             type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-xl transition-all"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider px-6 py-3.5 rounded-xl transition-all shadow-sm cursor-pointer"
           >
             + Create Competition
           </button>
@@ -90,22 +98,26 @@ export default function ManageCompetitions() {
 
         {/* Competition List */}
         <div className="space-y-3">
-          <h2 className="text-lg font-bold text-white">Existing Competitions</h2>
+          <h2 className="text-lg font-bold text-slate-800">Existing Competitions</h2>
           {loading ? (
-            <p className="text-slate-500 text-sm">Loading competitions...</p>
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 text-center text-slate-500 text-sm font-medium">
+              Loading competitions...
+            </div>
           ) : competitions.length === 0 ? (
-            <p className="text-slate-500 text-sm">No competitions created yet.</p>
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 text-center text-slate-500 text-sm font-medium">
+              No competitions created yet.
+            </div>
           ) : (
             competitions.map((comp) => (
               <div
                 key={comp.id}
-                className="flex items-center justify-between p-4 bg-slate-900/50 border border-white/5 rounded-xl"
+                className="flex items-center justify-between p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm"
               >
                 <div>
-                  <h3 className="font-bold text-white text-base">{comp.name}</h3>
-                  <p className="text-xs text-slate-400 font-mono">Code: {comp.code}</p>
+                  <h3 className="font-bold text-slate-800 text-base">{comp.name}</h3>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">Code: {comp.code}</p>
                 </div>
-                <span className="text-xs font-extrabold bg-blue-500/10 border border-blue-500/20 text-blue-400 px-3 py-1 rounded-full uppercase">
+                <span className="text-xs font-extrabold bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1 rounded-lg uppercase tracking-wider">
                   {comp.status}
                 </span>
               </div>
