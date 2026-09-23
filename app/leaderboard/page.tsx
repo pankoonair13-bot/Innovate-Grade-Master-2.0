@@ -104,7 +104,7 @@ export default function Leaderboard() {
           : 0;
         
         let award = "CERTIFICATE";
-        let awardColor = "text-slate-700 border-slate-300 bg-slate-100";
+        let awardColor = "text-slate-700 border-slate-200 bg-slate-100";
         
         if (avg >= 80) {
           award = "GOLD";
@@ -114,7 +114,7 @@ export default function Leaderboard() {
           awardColor = "text-slate-700 border-slate-300 bg-slate-100";
         } else if (avg >= 50) {
           award = "BRONZE";
-          awardColor = "text-amber-800 border-amber-400 bg-amber-100/60";
+          awardColor = "text-amber-800 border-amber-300 bg-amber-100/60";
         }
         
         return { 
@@ -153,7 +153,6 @@ export default function Leaderboard() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Results");
 
-    // Dynamic calculation for column widths
     const max_width = (key: string) => {
       return excelData.reduce((w, r) => Math.max(w, String((r as any)[key] || '').length), key.length) + 4;
     };
@@ -185,16 +184,16 @@ export default function Leaderboard() {
   // Block Screen for Restricted Access
   if (authorized === false) {
     return (
-      <div className="min-h-screen bg-white text-slate-900 flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-slate-50 border border-slate-200 p-8 rounded-3xl max-w-md w-full shadow-lg">
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-white border border-slate-200 p-8 rounded-3xl max-w-md w-full shadow-lg">
           <span className="text-5xl mb-4 block">🔒</span>
           <h1 className="text-2xl font-black mb-2">Access Restricted</h1>
-          <p className="text-slate-600 text-sm mb-6">
+          <p className="text-slate-500 text-sm mb-6">
             Judges are not allowed to view the overall leaderboard standings.
           </p>
           <button 
             onClick={() => router.push('/scoring')}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-sm"
           >
             Return to Scoring Page
           </button>
@@ -204,52 +203,52 @@ export default function Leaderboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 p-4 md:p-8 font-sans print:bg-white print:text-black">
-      <div className="max-w-5xl mx-auto print:max-w-full">
+    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-8 font-sans print:bg-white print:text-black">
+      <div className="max-w-6xl mx-auto print:max-w-full">
         
-        {/* Top Header Interface */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 border-b border-slate-200 pb-6 print:hidden gap-6">
-          <div>
-            <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-blue-600">
-              LIVE <span className="text-slate-900">LEADERBOARD</span>
-            </h1>
-          </div>
-
-          {/* Controls Panel Layout Configuration */}
-          <div className="flex flex-wrap items-center gap-3 md:gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200">
-            <div className="flex bg-slate-200/60 p-1 rounded-xl border border-slate-300/50 w-full sm:w-auto justify-center">
-              <button 
-                onClick={() => setPrintLayout('with-points')}
-                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${printLayout === 'with-points' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                With Points
-              </button>
-              <button 
-                onClick={() => setPrintLayout('without-points')}
-                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${printLayout === 'without-points' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                No Points
-              </button>
+        {/* Banner Card Design matching Dashboard */}
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-sm mb-6 print:hidden">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+              <h1 className="text-3xl md:text-5xl font-black italic tracking-tight text-blue-600">
+                LIVE <span className="text-slate-800">LEADERBOARD</span>
+              </h1>
             </div>
-            
-            <div className="flex gap-2 w-full sm:w-auto">
+
+            {/* Controls Panel Layout Configuration */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button 
+                  onClick={() => setPrintLayout('with-points')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${printLayout === 'with-points' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  With Points
+                </button>
+                <button 
+                  onClick={() => setPrintLayout('without-points')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${printLayout === 'without-points' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  No Points
+                </button>
+              </div>
+              
               <button 
                 onClick={handlePrint}
-                className="flex-1 sm:flex-none text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-5 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm cursor-pointer"
               >
                 🖨️ Print
               </button>
 
               <button 
                 onClick={exportToExcel}
-                className="flex-1 sm:flex-none text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-4 md:px-5 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm cursor-pointer"
               >
                 📊 Excel
               </button>
 
               <button 
                 onClick={() => fetchLeaderboard(true)} 
-                className="text-xs font-bold bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 px-3 md:px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm"
+                className="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-3 py-2 rounded-xl transition-all cursor-pointer shadow-sm"
               >
                 {loading ? "..." : "🔄"}
               </button>
@@ -257,19 +256,18 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* MEDAL & SDG FILTERS BAR */}
-        <div className="mb-8 space-y-4 print:hidden">
-          
+        {/* MEDAL & SDG FILTERS CARD */}
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm mb-6 space-y-4 print:hidden">
           {/* Medal Filter Buttons */}
           <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs font-extrabold uppercase text-slate-400 mr-2 tracking-wider">Medals:</span>
+            <span className="text-xs font-bold uppercase text-slate-400 mr-2 tracking-wider">Medals:</span>
             {['ALL', 'GOLD', 'SILVER', 'BRONZE', 'CERTIFICATE'].map((medal) => (
               <button
                 key={medal}
                 onClick={() => setSelectedAward(medal)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer border ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold uppercase transition-all cursor-pointer border ${
                   selectedAward === medal
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm scale-105'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                     : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
                 }`}
               >
@@ -283,14 +281,14 @@ export default function Leaderboard() {
           </div>
 
           {/* SDG Filter Dropdown */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200/70">
             <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider shrink-0">
               🌐 SDG Category Filter:
             </span>
             <select
               value={selectedSdg}
               onChange={(e) => setSelectedSdg(e.target.value)}
-              className="bg-white text-slate-800 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold w-full focus:outline-none focus:border-blue-500 shadow-sm"
+              className="bg-white text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold w-full focus:outline-none focus:border-blue-500 shadow-sm"
             >
               <option value="ALL">All 17 SDGs (Show All)</option>
               {SDG_LIST.map((sdg, idx) => (
@@ -311,13 +309,12 @@ export default function Leaderboard() {
               </button>
             )}
           </div>
-
         </div>
 
-        {/* Live Standings Standard List */}
-        <div className="space-y-4">
+        {/* Live Standings List */}
+        <div className="space-y-3">
           {loading && standings.length === 0 ? (
-            <div className="text-center py-20 text-slate-400 uppercase tracking-widest animate-pulse font-bold">
+            <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 text-slate-400 uppercase tracking-widest animate-pulse font-bold">
               Loading Leaderboard Data...
             </div>
           ) : (
@@ -328,44 +325,44 @@ export default function Leaderboard() {
               return (
                 <div 
                   key={item.id} 
-                  className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 rounded-2xl bg-slate-50 border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all gap-4 print:border-slate-200 print:bg-white print:text-black print:p-4"
+                  className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 print:border-slate-200 print:bg-white print:text-black print:p-4"
                 >
                   {/* Left Section: Rank + Title + Info */}
-                  <div className="flex items-start md:items-center gap-3 md:gap-6">
-                    <span className="text-2xl md:text-3xl font-black text-slate-400 min-w-[2rem] shrink-0 print:text-black">
-                      {index + 1}
+                  <div className="flex items-start md:items-center gap-4 md:gap-6">
+                    <span className="text-2xl md:text-3xl font-black text-slate-300 min-w-[2.5rem] shrink-0 print:text-black">
+                      #{index + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-base md:text-xl font-bold uppercase tracking-tight text-slate-900 break-words print:text-black">
+                      <h2 className="text-base md:text-lg font-bold uppercase tracking-tight text-slate-900 break-words print:text-black">
                         {item.project_name || "No Project Title"}
                       </h2>
-                      <p className="text-xs md:text-sm text-slate-600 font-medium break-words mt-0.5">
+                      <p className="text-xs text-slate-500 font-medium break-words mt-0.5">
                         Leader: {item.name || item.participant_name || "N/A"} {item.team_name ? `• ${item.team_name}` : ''}
                       </p>
                       
                       {/* Supervisor Display */}
                       {supervisorName && (
-                        <p className="text-xs font-extrabold text-blue-600 uppercase mt-0.5">
+                        <p className="text-xs font-bold text-blue-600 uppercase mt-0.5">
                           SV: <span className="text-slate-700 font-semibold">{supervisorName}</span>
                         </p>
                       )}
 
                       <div className="flex flex-wrap items-center gap-2 mt-2">
                         {(item.category || item.theme) && (
-                          <span className="text-[10px] md:text-xs text-slate-500 font-semibold uppercase">
+                          <span className="text-[10px] md:text-xs text-slate-500 font-medium uppercase">
                             {item.category || item.theme}
                           </span>
                         )}
 
                         {item.program && (
-                          <span className="text-[10px] font-extrabold bg-blue-50 border border-blue-200 text-blue-700 px-2 py-0.5 rounded uppercase">
+                          <span className="text-[10px] font-extrabold bg-blue-50 border border-blue-100 text-blue-700 px-2 py-0.5 rounded-lg uppercase">
                             {item.program}
                           </span>
                         )}
 
                         {/* SDG Badge */}
                         {sdgGoal && (
-                          <span className="text-[10px] font-extrabold bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded uppercase">
+                          <span className="text-[10px] font-extrabold bg-emerald-50 border border-emerald-100 text-emerald-700 px-2 py-0.5 rounded-lg uppercase">
                             🌐 {sdgGoal}
                           </span>
                         )}
@@ -374,9 +371,9 @@ export default function Leaderboard() {
                   </div>
                   
                   {/* Right Section: Award Badge + Score Block */}
-                  <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 border-t border-slate-200 md:border-t-0 pt-3 md:pt-0 shrink-0">
+                  <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 border-t border-slate-100 md:border-t-0 pt-3 md:pt-0 shrink-0">
                     {/* Award Badge Display */}
-                    <div className={`px-3 md:px-4 py-1.5 rounded-xl text-xs font-black tracking-widest border font-mono ${item.awardColor} print:[-webkit-print-color-adjust:exact] print:[print-color-adjust:exact]`}>
+                    <div className={`px-4 py-2 rounded-xl text-xs font-black tracking-widest border font-mono ${item.awardColor} print:[-webkit-print-color-adjust:exact] print:[print-color-adjust:exact]`}>
                       {item.award === 'GOLD' && '🥇 '}
                       {item.award === 'SILVER' && '🥈 '}
                       {item.award === 'BRONZE' && '🥉 '}
@@ -387,7 +384,7 @@ export default function Leaderboard() {
                     {/* Conditional Score block */}
                     {printLayout === 'with-points' && (
                       <div className="text-right min-w-[4.5rem]">
-                        <div className="text-xl md:text-3xl font-black text-blue-600">
+                        <div className="text-xl md:text-2xl font-black text-blue-600">
                           {item.finalScore.toFixed(2)}%
                         </div>
                         <div className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Average</div>
@@ -400,7 +397,7 @@ export default function Leaderboard() {
           )}
 
           {filteredStandings.length === 0 && !loading && (
-            <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest border border-dashed border-slate-200 rounded-2xl bg-slate-50">
+            <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest border border-dashed border-slate-300 rounded-3xl bg-white shadow-sm">
               No Participants Found Matching Selected Filters
             </div>
           )}
