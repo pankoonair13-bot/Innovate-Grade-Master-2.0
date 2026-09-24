@@ -5,6 +5,26 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+const SDG_OPTIONS = [
+  "SDG 1: No Poverty",
+  "SDG 2: Zero Hunger",
+  "SDG 3: Good Health and Well-being",
+  "SDG 4: Quality Education",
+  "SDG 5: Gender Equality",
+  "SDG 6: Clean Water and Sanitation",
+  "SDG 7: Affordable and Clean Energy",
+  "SDG 8: Decent Work and Economic Growth",
+  "SDG 9: Industry, Innovation and Infrastructure",
+  "SDG 10: Reduced Inequalities",
+  "SDG 11: Sustainable Cities and Communities",
+  "SDG 12: Responsible Consumption and Production",
+  "SDG 13: Climate Action",
+  "SDG 14: Life Below Water",
+  "SDG 15: Life on Land",
+  "SDG 16: Peace, Justice and Strong Institutions",
+  "SDG 17: Partnerships for the Goals"
+];
+
 export default function CreateParticipantPage() {
   const [booth, setBooth] = useState("");
   const [project, setProject] = useState("");
@@ -20,41 +40,45 @@ export default function CreateParticipantPage() {
     setLoading(true);
 
     const trimmedSupervisor = supervisor.trim();
+    const trimmedSdg = sdg.trim();
 
-    const payload = {
+    // Primary payload using standard schema fields
+    let payload: Record<string, any> = {
       booth_number: booth.trim(),
       project_name: project.trim(),
       team_name: team.trim(),
-      name: team.trim(),
       program: program.trim(),
-      project_sdg: sdg.trim(),
-      project_theme: sdg.trim(),
-      theme: sdg.trim(),
-      category: sdg.trim(),
-      supervisor: trimmedSupervisor,
+      project_sdg: trimmedSdg,
       supervisor_name: trimmedSupervisor,
     };
 
     let { error } = await supabase.from("participants").insert([payload]);
 
-    if (error && error.message.includes("supervisor_name")) {
-      const fallbackPayload = { ...payload };
-      delete (fallbackPayload as any).supervisor_name;
+    // Fallback 1: If project_sdg column doesn't exist, try project_theme
+    if (error && error.message.includes("project_sdg")) {
+      delete payload.project_sdg;
+      payload.project_theme = trimmedSdg;
 
-      const fallbackResult = await supabase
-        .from("participants")
-        .insert([fallbackPayload]);
-      error = fallbackResult.error;
+      const retry = await supabase.from("participants").insert([payload]);
+      error = retry.error;
     }
 
-    if (error && error.message.includes("supervisor")) {
-      const fallbackPayload = { ...payload };
-      delete (fallbackPayload as any).supervisor;
+    // Fallback 2: If supervisor_name column doesn't exist, try supervisor
+    if (error && error.message.includes("supervisor_name")) {
+      delete payload.supervisor_name;
+      payload.supervisor = trimmedSupervisor;
 
-      const fallbackResult = await supabase
-        .from("participants")
-        .insert([fallbackPayload]);
-      error = fallbackResult.error;
+      const retry = await supabase.from("participants").insert([payload]);
+      error = retry.error;
+    }
+
+    // Fallback 3: If team_name column doesn't exist, try name
+    if (error && error.message.includes("team_name")) {
+      delete payload.team_name;
+      payload.name = team.trim();
+
+      const retry = await supabase.from("participants").insert([payload]);
+      error = retry.error;
     }
 
     if (error) {
@@ -124,14 +148,19 @@ export default function CreateParticipantPage() {
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">
               PROJECT SDG
             </label>
-            <input
-              type="text"
+            <select
               required
-              placeholder="e.g. SDG 7 / SDG 9 / SDG 13"
-              className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-sm focus:outline-none focus:border-indigo-600 focus:bg-white transition-all placeholder:text-slate-400"
+              className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-sm focus:outline-none focus:border-indigo-600 focus:bg-white transition-all cursor-pointer"
               value={sdg}
               onChange={(e) => setSdg(e.target.value)}
-            />
+            >
+              <option value="" disabled>Select Sustainable Development Goal</option>
+              {SDG_OPTIONS.map((item, idx) => (
+                <option key={idx} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Project Name */}
