@@ -4,6 +4,9 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 
+// Defined Programmes List matching CreateParticipant options
+const DEFAULT_PROGRAM_OPTIONS = ["DET", "DEP", "DTK"];
+
 // 17 Sustainable Development Goals List
 const SDG_LIST = [
   "SDG 1: No Poverty",
@@ -71,15 +74,18 @@ export default function Leaderboard() {
     );
   };
 
-  // Extract unique programmes dynamically from loaded dataset
+  // Extract unique programmes dynamically + include defaults (DET, DEP, DTK)
   const programList = useMemo(() => {
-    const programs = standings
+    const fetchedPrograms = standings
       .map((item) => String(getProgramValue(item)).trim().toUpperCase())
       .filter((p) => p !== '');
-    return Array.from(new Set(programs)).sort();
+    
+    // Combine standard choices with dynamic ones from DB
+    const combined = Array.from(new Set([...DEFAULT_PROGRAM_OPTIONS, ...fetchedPrograms]));
+    return combined.sort();
   }, [standings]);
 
-  // 1. Core Fetch Effect & Auth Verification
+  // Fetch Effect & Auth Verification
   useEffect(() => {
     checkAuthAndFetch();
 
@@ -121,14 +127,14 @@ export default function Leaderboard() {
   async function fetchLeaderboard(showLoadingIndicator = true) {
     if (showLoadingIndicator) setLoading(true);
     
-    // Extended query limit to 1000 so DEP and DET aren't truncated by Supabase
+    // Fetch with explicitly extended range to bypass default 100 limit
     const { data, error } = await supabase
       .from('participants') 
       .select(`
         *,
         scores ( score )
       `)
-      .limit(1000);
+      .range(0, 4000);
 
     if (error) {
       console.error("Data error:", error.message);
@@ -183,7 +189,7 @@ export default function Leaderboard() {
       return {
         "Rank": index + 1,
         "Project Title": (item.project_name || "No Project Title").toUpperCase(),
-        "Team": (item.team_name || "N/A").toUpperCase(),
+        "Team": (item.team_name || item.name || "N/A").toUpperCase(),
         "Supervisor": (item.supervisor_name || item.supervisor || "N/A").toUpperCase(),
         "Program": progVal ? String(progVal).toUpperCase() : "N/A",
         "SDG": sdgVal ? String(sdgVal).toUpperCase() : "N/A",
@@ -218,9 +224,9 @@ export default function Leaderboard() {
   const filteredStandings = standings.filter(item => {
     const matchesAward = selectedAward === 'ALL' || item.award === selectedAward;
     
-    // Programme Matching
-    const itemProgram = String(getProgramValue(item)).trim().toLowerCase();
-    const matchesProgram = selectedProgram === 'ALL' || itemProgram === selectedProgram.trim().toLowerCase();
+    // Exact Programme Matching
+    const itemProgram = String(getProgramValue(item)).trim().toUpperCase();
+    const matchesProgram = selectedProgram === 'ALL' || itemProgram === selectedProgram.trim().toUpperCase();
 
     // SDG Matching
     const itemSdg = String(getSdgValue(item)).trim();
@@ -423,7 +429,7 @@ export default function Leaderboard() {
                           {item.project_name || "No Project Title"}
                         </h2>
                         <p className="text-xs text-slate-500 font-medium break-words mt-0.5">
-                          Leader: {item.name || item.participant_name || "N/A"} {item.team_name ? `• ${item.team_name}` : ''}
+                          Leader: {item.team_name || item.name || item.participant_name || "N/A"}
                         </p>
                         
                         {/* Supervisor Display */}

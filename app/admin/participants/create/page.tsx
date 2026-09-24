@@ -27,8 +27,7 @@ const SDG_OPTIONS = [
 const PROGRAM_OPTIONS = [
   "DET",
   "DEP",
-  "DTK",
-  "OTHER"
+  "DTK"
 ];
 
 export default function CreateParticipantPage() {
