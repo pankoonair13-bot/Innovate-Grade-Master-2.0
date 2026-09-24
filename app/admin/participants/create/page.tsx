@@ -10,7 +10,7 @@ export default function CreateParticipantPage() {
   const [project, setProject] = useState("");
   const [team, setTeam] = useState("");
   const [program, setProgram] = useState("");
-  const [theme, setTheme] = useState("");
+  const [sdg, setSdg] = useState("");
   const [supervisor, setSupervisor] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -27,9 +27,10 @@ export default function CreateParticipantPage() {
       team_name: team.trim(),
       name: team.trim(),
       program: program.trim(),
-      project_theme: theme.trim(),
-      theme: theme.trim(),
-      category: theme.trim(),
+      project_sdg: sdg.trim(),
+      project_theme: sdg.trim(),
+      theme: sdg.trim(),
+      category: sdg.trim(),
       supervisor: trimmedSupervisor,
       supervisor_name: trimmedSupervisor,
     };
@@ -118,18 +119,18 @@ export default function CreateParticipantPage() {
             />
           </div>
 
-          {/* Project Theme */}
+          {/* Project SDG */}
           <div>
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">
-              PROJECT THEME
+              PROJECT SDG
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. IoT / Automation / Renewable Energy"
+              placeholder="e.g. SDG 7 / SDG 9 / SDG 13"
               className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-sm focus:outline-none focus:border-indigo-600 focus:bg-white transition-all placeholder:text-slate-400"
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
+              value={sdg}
+              onChange={(e) => setSdg(e.target.value)}
             />
           </div>
 
