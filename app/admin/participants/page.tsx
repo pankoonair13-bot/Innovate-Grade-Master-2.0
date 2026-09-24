@@ -16,7 +16,7 @@ export default function ParticipantsPage() {
     booth_number: '',
     team_name: '',
     program: '',
-    project_theme: '',
+    project_sdg: '',
     supervisor_name: ''
   });
 
@@ -87,20 +87,20 @@ export default function ParticipantsPage() {
       booth_number: p.booth_number || '',
       team_name: p.team_name || p.name || '',
       program: p.program || '',
-      project_theme: p.project_theme || p.theme || '',
+      project_sdg: p.project_sdg || p.project_theme || p.theme || '',
       supervisor_name: p.supervisor_name || p.supervisor || ''
     });
   };
 
   // Save Inline Edit
   const saveInlineEdit = async (id: string | number) => {
-    // Exact schema matching object - excluding invalid 'name' or 'theme' keys
     const payload: Record<string, any> = {
       project_name: editForm.project_name.trim(),
       booth_number: editForm.booth_number.trim(),
       team_name: editForm.team_name.trim(),
       program: editForm.program.trim(),
-      project_theme: editForm.project_theme.trim(),
+      project_sdg: editForm.project_sdg.trim(),
+      project_theme: editForm.project_sdg.trim(), // Keep backwards compatibility
       supervisor_name: editForm.supervisor_name.trim()
     };
 
@@ -109,7 +109,6 @@ export default function ParticipantsPage() {
       .update(payload)
       .eq('id', id);
 
-    // Fallback if schema uses 'supervisor' column instead of 'supervisor_name'
     if (error && error.message.includes("supervisor_name")) {
       payload.supervisor = editForm.supervisor_name.trim();
       delete payload.supervisor_name;
@@ -159,7 +158,7 @@ export default function ParticipantsPage() {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="p-6 text-[10px] font-black uppercase text-slate-400">Project / Team / Supervisor</th>
-                <th className="p-6 text-[10px] font-black uppercase text-slate-400">Booth / Prog / Theme</th>
+                <th className="p-6 text-[10px] font-black uppercase text-slate-400">Booth / Prog / SDG</th>
                 <th className="p-6 text-[10px] font-black uppercase text-slate-400">Assigned Judges</th>
                 <th className="p-6 text-[10px] font-black uppercase text-slate-400 text-right">Actions</th>
               </tr>
@@ -167,7 +166,7 @@ export default function ParticipantsPage() {
             <tbody className="divide-y divide-slate-100">
               {participants.map((p) => {
                 const isEditing = editingId === p.id;
-                const projectTheme = p.project_theme || p.theme || 'N/A';
+                const projectSDG = p.project_sdg || p.project_theme || p.theme || 'N/A';
                 const supervisorName = p.supervisor_name || p.supervisor || 'N/A';
                 
                 const boothJudges = assignments.filter(
@@ -222,9 +221,9 @@ export default function ParticipantsPage() {
                           <input 
                             type="text" 
                             className="w-full p-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-black uppercase"
-                            value={editForm.project_theme} 
-                            placeholder="Project Theme"
-                            onChange={(e) => setEditForm({...editForm, project_theme: e.target.value})}
+                            value={editForm.project_sdg} 
+                            placeholder="Project SDG"
+                            onChange={(e) => setEditForm({...editForm, project_sdg: e.target.value})}
                           />
                         </td>
                         <td className="p-4 text-xs font-bold text-slate-400 italic">
@@ -261,7 +260,7 @@ export default function ParticipantsPage() {
                           <div className="flex flex-wrap gap-1">
                             <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[9px] font-black uppercase">{p.booth_number}</span>
                             <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[9px] font-black uppercase">{p.program || 'N/A'}</span>
-                            <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg text-[9px] font-black uppercase">{projectTheme}</span>
+                            <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg text-[9px] font-black uppercase">SDG: {projectSDG}</span>
                           </div>
                         </td>
                         <td className="p-6">
