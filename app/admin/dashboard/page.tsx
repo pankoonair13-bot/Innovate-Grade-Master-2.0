@@ -13,6 +13,7 @@ export default function AdminDashboard() {
   const [role, setRole] = useState<string | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [batchName, setBatchName] = useState('');
 
   // Load user role and assignment mode settings
   useEffect(() => {
@@ -65,6 +66,86 @@ export default function AdminDashboard() {
     if (error) {
       alert("Failed to update setting: " + error.message);
       setEnforceAssignment(!newValue);
+    }
+  };
+
+  // Archive Current Competition & Clear Active Standings
+  const handleArchiveCompetition = async () => {
+    if (!batchName.trim()) {
+      return alert("Please enter a name for this competition batch! (e.g. INNOVATION DAY 2026)");
+    }
+
+    const isConfirmed = confirm(
+      `📦 ARCHIVE COMPETITION: Save current standings under "${batchName.trim().toUpperCase()}" and clear current active scores/participants for a fresh competition?`
+    );
+
+    if (!isConfirmed) return;
+
+    setLoading(true);
+    setStatus('Archiving Current Standings...');
+
+    try {
+      // 1. Fetch active participants & calculate final scores
+      const { data: standings, error: fetchErr } = await supabase
+        .from('participants')
+        .select(`*, scores(score)`);
+
+      if (fetchErr) throw fetchErr;
+
+      // 2. Transform into archive schema
+      const archiveRows = (standings || []).map((item) => {
+        const scoresArr = item.scores || [];
+        const avg =
+          scoresArr.length > 0
+            ? scoresArr.reduce((acc: number, s: any) => acc + (Number(s.score) || 0), 0) / scoresArr.length
+            : 0;
+
+        let award = "CERTIFICATE";
+        if (avg >= 80) award = "GOLD";
+        else if (avg >= 70) award = "SILVER";
+        else if (avg >= 50) award = "BRONZE";
+
+        return {
+          batch_name: batchName.trim().toUpperCase(),
+          project_name: item.project_name || "N/A",
+          team_name: item.team_name || item.name || "N/A",
+          supervisor_name: item.supervisor_name || item.supervisor || "N/A",
+          program: item.program || item.programme || "N/A",
+          project_sdg: item.project_sdg || item.project_theme || "N/A",
+          final_score: Number(avg.toFixed(2)),
+          award: award,
+        };
+      });
+
+      // 3. Save to Archives table
+      if (archiveRows.length > 0) {
+        const { error: archiveErr } = await supabase.from('archives').insert(archiveRows);
+        if (archiveErr) throw archiveErr;
+      }
+
+      // 4. Safely clear active scores & participants
+      const { error: clearScoresErr } = await supabase
+        .from('scores')
+        .delete()
+        .not('id', 'is', null);
+
+      if (clearScoresErr) throw clearScoresErr;
+
+      const { error: clearPartErr } = await supabase
+        .from('participants')
+        .delete()
+        .not('id', 'is', null);
+
+      if (clearPartErr) throw clearPartErr;
+
+      alert("✅ Competition successfully archived and live tables cleared!");
+      setBatchName('');
+      window.location.reload();
+    } catch (err: any) {
+      alert("❌ Error during archiving: " + err.message);
+    } finally {
+      setLoading(false);
+      setStatus('');
     }
   };
 
@@ -255,7 +336,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Card: Leaderboard & Criteria */}
+          {/* Card: Leaderboard & Archives */}
           {hasMounted && isJudge ? (
             <div className="bg-slate-100 rounded-2xl p-8 border border-slate-200/50 opacity-60 flex flex-col justify-between">
               <div>
@@ -271,14 +352,14 @@ export default function AdminDashboard() {
           ) : (
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 flex flex-col group hover:border-emerald-300 transition-all">
               <span className="text-3xl mb-4">🏆</span>
-              <h2 className="text-xl font-bold text-slate-800">Scoring & Rules</h2>
-              <p className="text-sm text-slate-500 mt-2 mb-6">Manage judging criteria and view live competition results.</p>
+              <h2 className="text-xl font-bold text-slate-800">Standings & Archives</h2>
+              <p className="text-sm text-slate-500 mt-2 mb-6">View live leaderboards or browse historical competition archives.</p>
               <div className="mt-auto flex flex-col gap-2">
                 <Link href="/leaderboard" className="w-full py-3 bg-emerald-600 text-white text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-emerald-700 transition-colors shadow-sm">
                   Live Standings
                 </Link>
-                <Link href="/admin/criteria" className="w-full py-3 bg-slate-50 border border-slate-200 text-slate-700 text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-slate-100 transition-colors">
-                  Edit Criteria
+                <Link href="/admin/past-results" className="w-full py-3 bg-amber-500 text-white text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-amber-600 transition-colors shadow-sm">
+                  Past Competition Archives
                 </Link>
               </div>
             </div>
@@ -287,37 +368,65 @@ export default function AdminDashboard() {
           {/* MAINTENANCE TOOLS */}
           <div className="md:col-span-2 lg:col-span-3 mt-4">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 ml-2 text-slate-400">
-              Maintenance
+              Maintenance & Database Archiving
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              {/* Clear Scores Tool */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex items-center justify-between gap-4 shadow-sm">
+              {/* Archive Competition Tool */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm md:col-span-1">
                 <div>
-                  <h4 className="font-bold text-slate-800">Clear Scores</h4>
-                  <p className="text-xs text-slate-500">Keep teams and judges, delete live leaderboard marks.</p>
+                  <h4 className="font-bold text-slate-800">📦 Archive Competition</h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Save current standings into read-only archives before starting a new competition event.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Batch Tag (e.g. FIP 2026)"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-indigo-600"
+                    value={batchName}
+                    onChange={(e) => setBatchName(e.target.value)}
+                  />
+                  <button 
+                    onClick={handleArchiveCompetition}
+                    disabled={loading}
+                    className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black text-[10px] uppercase transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  >
+                    {loading && status.includes('Archiving') ? "Archiving..." : "Archive & Reset Active"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Clear Scores Tool */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm md:col-span-1">
+                <div>
+                  <h4 className="font-bold text-slate-800">🔄 Clear Live Scores</h4>
+                  <p className="text-xs text-slate-500 mt-1">Keep teams and judges, but delete live leaderboard marks to re-evaluate.</p>
                 </div>
                 <button 
                   onClick={() => runAction('scores')}
                   disabled={loading}
-                  className="px-6 py-3 bg-amber-50 text-amber-700 border border-amber-200/80 rounded-xl font-black text-[10px] uppercase hover:bg-amber-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  className="w-full py-3 bg-amber-50 text-amber-700 border border-amber-200/80 rounded-xl font-black text-[10px] uppercase hover:bg-amber-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer shadow-sm mt-auto"
                 >
-                  {loading && status.includes('Standings') ? "Busy..." : "Reset"}
+                  {loading && status.includes('Standings') ? "Busy..." : "Reset Live Scores"}
                 </button>
               </div>
 
               {/* Factory Reset Tool */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex items-center justify-between gap-4 shadow-sm">
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm md:col-span-1">
                 <div>
-                  <h4 className="font-bold text-red-600">Factory Reset</h4>
-                  <p className="text-xs text-slate-500">Delete all participants, judges, and scores.</p>
+                  <h4 className="font-bold text-red-600">🚫 Factory Reset</h4>
+                  <p className="text-xs text-slate-500 mt-1">Completely delete all current participants, judges, and active scores.</p>
                 </div>
                 <button 
                   onClick={() => runAction('all')}
                   disabled={loading}
-                  className="px-6 py-3 bg-red-50 text-red-600 border border-red-200/80 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  className="w-full py-3 bg-red-50 text-red-600 border border-red-200/80 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer shadow-sm mt-auto"
                 >
-                  {loading && status.includes('Database') ? "Busy..." : "Wipe All"}
+                  {loading && status.includes('Database') ? "Busy..." : "Wipe All Active Data"}
                 </button>
               </div>
 
