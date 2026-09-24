@@ -38,9 +38,21 @@ export default function Leaderboard() {
   // Print Mode Layout Toggle: 'with-points' or 'without-points'
   const [printLayout, setPrintLayout] = useState<'with-points' | 'without-points'>('with-points');
 
-  // Helper to accurately retrieve SDG value from multiple possible column keys
+  // Comprehensive helper function to extract SDG value regardless of Supabase column name
   const getSdgValue = (item: any) => {
-    return item?.sdg || item?.sdg_goal || item?.sdg_category || item?.sdg_id || item?.sdg_number || "";
+    if (!item) return "";
+    return (
+      item.sdg ||
+      item.sdg_goal ||
+      item.sdg_category ||
+      item.sdg_id ||
+      item.sdg_number ||
+      item.sdg_target ||
+      item.sdgs ||
+      item.sdg_code ||
+      item.sdg_name ||
+      ""
+    );
   };
 
   // 1. Core Fetch Effect & Auth Verification
