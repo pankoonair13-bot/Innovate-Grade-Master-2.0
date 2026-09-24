@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
@@ -34,6 +34,7 @@ export default function Leaderboard() {
   // Filters State
   const [selectedAward, setSelectedAward] = useState<string>('ALL');
   const [selectedSdg, setSelectedSdg] = useState<string>('ALL');
+  const [selectedProgram, setSelectedProgram] = useState<string>('ALL'); // NEW PROGRAMME FILTER STATE
 
   // Print Mode Layout Toggle: 'with-points' or 'without-points'
   const [printLayout, setPrintLayout] = useState<'with-points' | 'without-points'>('with-points');
@@ -56,6 +57,14 @@ export default function Leaderboard() {
       ""
     );
   };
+
+  // Extract unique programmes dynamically from loaded dataset
+  const programList = useMemo(() => {
+    const programs = standings
+      .map((item) => (item.program ? String(item.program).trim() : ''))
+      .filter((p) => p !== '');
+    return Array.from(new Set(programs)).sort();
+  }, [standings]);
 
   // 1. Core Fetch Effect & Auth Verification
   useEffect(() => {
@@ -195,8 +204,13 @@ export default function Leaderboard() {
   // Filtered Standings Logic
   const filteredStandings = standings.filter(item => {
     const matchesAward = selectedAward === 'ALL' || item.award === selectedAward;
-    const itemSdg = String(getSdgValue(item)).trim();
+    
+    // Programme Matching
+    const itemProgram = item.program ? String(item.program).trim().toLowerCase() : '';
+    const matchesProgram = selectedProgram === 'ALL' || itemProgram === selectedProgram.trim().toLowerCase();
 
+    // SDG Matching
+    const itemSdg = String(getSdgValue(item)).trim();
     let matchesSdg = selectedSdg === 'ALL';
 
     if (!matchesSdg && itemSdg) {
@@ -207,7 +221,7 @@ export default function Leaderboard() {
                    itemPrefix === selectedPrefix;
     }
 
-    return matchesAward && matchesSdg;
+    return matchesAward && matchesProgram && matchesSdg;
   });
 
   // Block Screen for Restricted Access
@@ -288,6 +302,7 @@ export default function Leaderboard() {
 
         {/* FILTER BAR: Clean Crisp White Card with Indigo Highlights */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 md:p-6 shadow-sm space-y-4 print:hidden">
+          
           {/* Medal Filter Buttons */}
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-xs font-bold uppercase text-slate-400 mr-2 tracking-wider">Medal Filter:</span>
@@ -310,35 +325,62 @@ export default function Leaderboard() {
             ))}
           </div>
 
-          {/* SDG Filter Dropdown */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-            <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider shrink-0 pl-1">
-              🌐 SDG Category Filter:
-            </span>
-            <select
-              value={selectedSdg}
-              onChange={(e) => setSelectedSdg(e.target.value)}
-              className="bg-white text-slate-800 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold w-full focus:outline-none focus:border-indigo-500 shadow-sm"
-            >
-              <option value="ALL">All 17 SDGs (Show All)</option>
-              {SDG_LIST.map((sdg, idx) => (
-                <option key={idx} value={`SDG ${idx + 1}`}>
-                  {sdg}
-                </option>
-              ))}
-            </select>
-            {(selectedAward !== 'ALL' || selectedSdg !== 'ALL') && (
+          {/* Dropdown Filters Container */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Programme Filter Dropdown */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+              <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider shrink-0 pl-1">
+                🎓 Programme:
+              </span>
+              <select
+                value={selectedProgram}
+                onChange={(e) => setSelectedProgram(e.target.value)}
+                className="bg-white text-slate-800 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold w-full focus:outline-none focus:border-indigo-500 shadow-sm"
+              >
+                <option value="ALL">All Programmes (Show All)</option>
+                {programList.map((prog, idx) => (
+                  <option key={idx} value={prog}>
+                    {prog.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* SDG Filter Dropdown */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+              <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider shrink-0 pl-1">
+                🌐 SDG Category:
+              </span>
+              <select
+                value={selectedSdg}
+                onChange={(e) => setSelectedSdg(e.target.value)}
+                className="bg-white text-slate-800 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold w-full focus:outline-none focus:border-indigo-500 shadow-sm"
+              >
+                <option value="ALL">All 17 SDGs (Show All)</option>
+                {SDG_LIST.map((sdg, idx) => (
+                  <option key={idx} value={`SDG ${idx + 1}`}>
+                    {sdg}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Reset Filters Option */}
+          {(selectedAward !== 'ALL' || selectedSdg !== 'ALL' || selectedProgram !== 'ALL') && (
+            <div className="flex justify-end pt-1">
               <button
                 onClick={() => {
                   setSelectedAward('ALL');
                   setSelectedSdg('ALL');
+                  setSelectedProgram('ALL');
                 }}
-                className="text-[11px] font-bold text-red-500 hover:text-red-600 uppercase tracking-wider underline shrink-0 cursor-pointer ml-auto pr-1"
+                className="text-[11px] font-bold text-red-500 hover:text-red-600 uppercase tracking-wider underline shrink-0 cursor-pointer pr-1"
               >
-                Reset Filters
+                Reset All Filters
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* RESULTS STANDINGS BOARD */}
