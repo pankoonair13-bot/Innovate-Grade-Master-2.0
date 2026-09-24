@@ -38,6 +38,11 @@ export default function Leaderboard() {
   // Print Mode Layout Toggle: 'with-points' or 'without-points'
   const [printLayout, setPrintLayout] = useState<'with-points' | 'without-points'>('with-points');
 
+  // Helper to accurately retrieve SDG value from multiple possible column keys
+  const getSdgValue = (item: any) => {
+    return item?.sdg || item?.sdg_goal || item?.sdg_category || item?.sdg_id || item?.sdg_number || "";
+  };
+
   // 1. Core Fetch Effect & Auth Verification
   useEffect(() => {
     checkAuthAndFetch();
@@ -137,17 +142,19 @@ export default function Leaderboard() {
   const exportToExcel = () => {
     if (filteredStandings.length === 0) return alert("No data available to export!");
 
-    const excelData = filteredStandings.map((item, index) => ({
-      "Rank": index + 1,
-      "Project Title": (item.project_name || "No Project Title").toUpperCase(),
-      "Team": (item.team_name || "N/A").toUpperCase(),
-      "Supervisor": (item.supervisor_name || item.supervisor || "N/A").toUpperCase(),
-      "Program": (item.program || "N/A").toUpperCase(),
-      "Theme/Category": (item.category || item.theme || "N/A").toUpperCase(),
-      "SDG Goal": item.sdg || item.sdg_goal || "N/A",
-      "Award Medal": item.award,
-      "Average Score": `${item.finalScore.toFixed(2)}%`
-    }));
+    const excelData = filteredStandings.map((item, index) => {
+      const sdgVal = getSdgValue(item);
+      return {
+        "Rank": index + 1,
+        "Project Title": (item.project_name || "No Project Title").toUpperCase(),
+        "Team": (item.team_name || "N/A").toUpperCase(),
+        "Supervisor": (item.supervisor_name || item.supervisor || "N/A").toUpperCase(),
+        "Program": (item.program || "N/A").toUpperCase(),
+        "SDG": sdgVal ? String(sdgVal).toUpperCase() : "N/A",
+        "Award Medal": item.award,
+        "Average Score": `${item.finalScore.toFixed(2)}%`
+      };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
@@ -163,8 +170,7 @@ export default function Leaderboard() {
       { wch: max_width("Team") },          // Team
       { wch: max_width("Supervisor") },    // Supervisor
       { wch: max_width("Program") },       // Program
-      { wch: max_width("Theme/Category") },// Theme/Category
-      { wch: max_width("SDG Goal") },      // SDG
+      { wch: max_width("SDG") },           // SDG
       { wch: 16 },                         // Award Medal
       { wch: 16 }                          // Average Score
     ];
@@ -175,7 +181,7 @@ export default function Leaderboard() {
   // Filtered Standings Logic
   const filteredStandings = standings.filter(item => {
     const matchesAward = selectedAward === 'ALL' || item.award === selectedAward;
-    const itemSdg = item.sdg || item.sdg_goal || '';
+    const itemSdg = String(getSdgValue(item));
     const matchesSdg = selectedSdg === 'ALL' || itemSdg.toLowerCase().includes(selectedSdg.toLowerCase());
 
     return matchesAward && matchesSdg;
@@ -322,7 +328,7 @@ export default function Leaderboard() {
             ) : (
               filteredStandings.map((item, index) => {
                 const supervisorName = item.supervisor_name || item.supervisor;
-                const sdgGoal = item.sdg || item.sdg_goal;
+                const sdgGoal = getSdgValue(item);
 
                 return (
                   <div 
@@ -350,12 +356,6 @@ export default function Leaderboard() {
                         )}
 
                         <div className="flex flex-wrap items-center gap-2 mt-2">
-                          {(item.category || item.theme) && (
-                            <span className="text-[10px] md:text-xs text-slate-500 font-medium uppercase">
-                              {item.category || item.theme}
-                            </span>
-                          )}
-
                           {item.program && (
                             <span className="text-[10px] font-extrabold bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-0.5 rounded-lg uppercase">
                               {item.program}
@@ -365,7 +365,7 @@ export default function Leaderboard() {
                           {/* SDG Badge */}
                           {sdgGoal && (
                             <span className="text-[10px] font-extrabold bg-emerald-50 border border-emerald-100 text-emerald-700 px-2 py-0.5 rounded-lg uppercase">
-                              🌐 {sdgGoal}
+                              🌐 SDG: {sdgGoal}
                             </span>
                           )}
                         </div>
