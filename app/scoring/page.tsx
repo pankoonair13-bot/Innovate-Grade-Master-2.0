@@ -120,7 +120,7 @@ export default function ScoringPanel() {
       }
     } catch (err) {
       console.error("Error loading scoring panel data:", err);
-    } finally {
+    } font-sans finally {
       setLoading(false);
     }
   }, []);
@@ -214,19 +214,14 @@ export default function ScoringPanel() {
     <div className="min-h-screen bg-slate-50 p-4 md:p-6 pb-[500px] font-sans text-slate-900">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-2 text-center md:text-left">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight">
-              EDIAS 2026 <span className="text-blue-600">Scoring</span>
-            </h1>
-            {user && (
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                Logged in as: <span className="text-blue-500">{user.email?.split('@')[0]}</span>
-              </p>
-            )}
+        {/* User Info Bar */}
+        {user && (
+          <div className="mb-4 text-right">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Logged in as: <span className="text-blue-500">{user.email?.split('@')[0]}</span>
+            </p>
           </div>
-        </div>
+        )}
 
         {/* Project Selection */}
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-2 border-blue-100 mb-6 md:mb-8">
