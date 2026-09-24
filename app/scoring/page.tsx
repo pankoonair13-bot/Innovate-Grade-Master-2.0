@@ -120,7 +120,7 @@ export default function ScoringPanel() {
       }
     } catch (err) {
       console.error("Error loading scoring panel data:", err);
-    } font-sans finally {
+    } finally {
       setLoading(false);
     }
   }, []);
