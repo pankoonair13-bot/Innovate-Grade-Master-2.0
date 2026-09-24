@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const SDG_OPTIONS = [
@@ -25,6 +24,13 @@ const SDG_OPTIONS = [
   "SDG 17: Partnerships for the Goals"
 ];
 
+const PROGRAM_OPTIONS = [
+  "DET",
+  "DEP",
+  "DTK",
+  "OTHER"
+];
+
 export default function CreateParticipantPage() {
   const [booth, setBooth] = useState("");
   const [project, setProject] = useState("");
@@ -33,7 +39,15 @@ export default function CreateParticipantPage() {
   const [sdg, setSdg] = useState("");
   const [supervisor, setSupervisor] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+
+  const resetForm = () => {
+    setBooth("");
+    setProject("");
+    setTeam("");
+    setProgram("");
+    setSdg("");
+    setSupervisor("");
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,8 +98,8 @@ export default function CreateParticipantPage() {
     if (error) {
       alert("❌ Error adding participant: " + error.message);
     } else {
-      alert("✅ Participant registered successfully!");
-      router.push("/admin/participants");
+      alert("✅ Participant registered successfully! You can add another participant now.");
+      resetForm(); // Clears form fields without redirecting
     }
     setLoading(false);
   };
@@ -128,19 +142,24 @@ export default function CreateParticipantPage() {
             />
           </div>
 
-          {/* Program */}
+          {/* Program Option Select */}
           <div>
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">
-              PROGRAM (DET, DTK, DEP.)
+              PROGRAMME
             </label>
-            <input
-              type="text"
+            <select
               required
-              placeholder="e.g. DET, DTK, DEP"
-              className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-sm focus:outline-none focus:border-indigo-600 focus:bg-white transition-all placeholder:text-slate-400"
+              className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-sm focus:outline-none focus:border-indigo-600 focus:bg-white transition-all cursor-pointer"
               value={program}
               onChange={(e) => setProgram(e.target.value)}
-            />
+            >
+              <option value="" disabled>Select Programme</option>
+              {PROGRAM_OPTIONS.map((item, idx) => (
+                <option key={idx} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Project SDG */}
