@@ -42,6 +42,8 @@ export default function Leaderboard() {
   const getSdgValue = (item: any) => {
     if (!item) return "";
     return (
+      item.project_sdg ||
+      item.project_theme ||
       item.sdg ||
       item.sdg_goal ||
       item.sdg_category ||
@@ -193,8 +195,17 @@ export default function Leaderboard() {
   // Filtered Standings Logic
   const filteredStandings = standings.filter(item => {
     const matchesAward = selectedAward === 'ALL' || item.award === selectedAward;
-    const itemSdg = String(getSdgValue(item));
-    const matchesSdg = selectedSdg === 'ALL' || itemSdg.toLowerCase().includes(selectedSdg.toLowerCase());
+    const itemSdg = String(getSdgValue(item)).trim();
+
+    let matchesSdg = selectedSdg === 'ALL';
+
+    if (!matchesSdg && itemSdg) {
+      const selectedPrefix = selectedSdg.split(':')[0].trim().toLowerCase(); // e.g., "sdg 4"
+      const itemPrefix = itemSdg.split(':')[0].trim().toLowerCase();         // e.g., "sdg 4"
+
+      matchesSdg = itemSdg.toLowerCase().includes(selectedSdg.toLowerCase()) || 
+                   itemPrefix === selectedPrefix;
+    }
 
     return matchesAward && matchesSdg;
   });
