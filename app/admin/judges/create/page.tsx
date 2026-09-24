@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
 export default function CreateJudge() {
@@ -71,14 +70,6 @@ export default function CreateJudge() {
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 p-4 md:p-12 font-sans flex items-center justify-center">
       <div className="bg-white border border-slate-200/80 p-8 md:p-10 rounded-2xl shadow-sm w-full max-w-md space-y-6">
         
-        {/* Navigation Link */}
-        <Link
-          href="/admin/judges"
-          className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline inline-flex items-center gap-1"
-        >
-          ← Back to Judges List
-        </Link>
-
         {/* Title */}
         <div>
           <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">

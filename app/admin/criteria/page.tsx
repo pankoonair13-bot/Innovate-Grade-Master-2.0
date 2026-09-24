@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 
 export default function ManageCriteria() {
   const [list, setList] = useState<any[]>([]);
@@ -58,15 +57,9 @@ export default function ManageCriteria() {
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 p-4 md:p-12 font-sans">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Navigation & Header */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <Link
-              href="/admin"
-              className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline mb-1 inline-block"
-            >
-              ← Back to Admin Dashboard
-            </Link>
             <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tight">Setup Criteria</h1>
             <p className="text-slate-500 text-xs font-medium mt-1">Edit weights, labels, and reference rubric text for the official scoring panel.</p>
           </div>

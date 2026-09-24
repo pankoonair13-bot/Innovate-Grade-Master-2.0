@@ -163,12 +163,6 @@ export default function ManageJudges() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <Link
-              href="/admin"
-              className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline mb-1 inline-block"
-            >
-              ← Back to Admin Dashboard
-            </Link>
             <h1 className="text-3xl font-black italic text-slate-900 uppercase tracking-tight">
               Manage <span className="text-indigo-600">Judges</span>
             </h1>
