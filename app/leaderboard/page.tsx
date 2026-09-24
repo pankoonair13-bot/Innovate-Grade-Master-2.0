@@ -34,12 +34,25 @@ export default function Leaderboard() {
   // Filters State
   const [selectedAward, setSelectedAward] = useState<string>('ALL');
   const [selectedSdg, setSelectedSdg] = useState<string>('ALL');
-  const [selectedProgram, setSelectedProgram] = useState<string>('ALL'); // NEW PROGRAMME FILTER STATE
+  const [selectedProgram, setSelectedProgram] = useState<string>('ALL');
 
-  // Print Mode Layout Toggle: 'with-points' or 'without-points'
+  // Print Mode Layout Toggle
   const [printLayout, setPrintLayout] = useState<'with-points' | 'without-points'>('with-points');
 
-  // Comprehensive helper function to extract SDG value regardless of Supabase column name
+  // Helper function to extract Program regardless of column naming
+  const getProgramValue = (item: any) => {
+    if (!item) return "";
+    return (
+      item.program ||
+      item.programme ||
+      item.department ||
+      item.dept ||
+      item.course ||
+      ""
+    );
+  };
+
+  // Comprehensive helper function to extract SDG value
   const getSdgValue = (item: any) => {
     if (!item) return "";
     return (
@@ -61,7 +74,7 @@ export default function Leaderboard() {
   // Extract unique programmes dynamically from loaded dataset
   const programList = useMemo(() => {
     const programs = standings
-      .map((item) => (item.program ? String(item.program).trim() : ''))
+      .map((item) => String(getProgramValue(item)).trim().toUpperCase())
       .filter((p) => p !== '');
     return Array.from(new Set(programs)).sort();
   }, [standings]);
@@ -87,7 +100,6 @@ export default function Leaderboard() {
       return;
     }
 
-    // Retrieve role from user metadata or profile table
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -96,7 +108,6 @@ export default function Leaderboard() {
 
     const role = profile?.role || user.user_metadata?.role;
 
-    // Deny access if user is a judge
     if (role === 'judge') {
       setAuthorized(false);
       setLoading(false);
@@ -110,12 +121,14 @@ export default function Leaderboard() {
   async function fetchLeaderboard(showLoadingIndicator = true) {
     if (showLoadingIndicator) setLoading(true);
     
+    // Extended query limit to 1000 so DEP and DET aren't truncated by Supabase
     const { data, error } = await supabase
       .from('participants') 
       .select(`
         *,
         scores ( score )
-      `);
+      `)
+      .limit(1000);
 
     if (error) {
       console.error("Data error:", error.message);
@@ -124,7 +137,6 @@ export default function Leaderboard() {
     }
 
     if (data) {
-      // Standard calculation & linear sorting by highest score
       const processed = data.map(p => {
         const scoresArray = p.scores || [];
         const avg = scoresArray.length > 0 
@@ -167,12 +179,13 @@ export default function Leaderboard() {
 
     const excelData = filteredStandings.map((item, index) => {
       const sdgVal = getSdgValue(item);
+      const progVal = getProgramValue(item);
       return {
         "Rank": index + 1,
         "Project Title": (item.project_name || "No Project Title").toUpperCase(),
         "Team": (item.team_name || "N/A").toUpperCase(),
         "Supervisor": (item.supervisor_name || item.supervisor || "N/A").toUpperCase(),
-        "Program": (item.program || "N/A").toUpperCase(),
+        "Program": progVal ? String(progVal).toUpperCase() : "N/A",
         "SDG": sdgVal ? String(sdgVal).toUpperCase() : "N/A",
         "Award Medal": item.award,
         "Average Score": `${item.finalScore.toFixed(2)}%`
@@ -206,7 +219,7 @@ export default function Leaderboard() {
     const matchesAward = selectedAward === 'ALL' || item.award === selectedAward;
     
     // Programme Matching
-    const itemProgram = item.program ? String(item.program).trim().toLowerCase() : '';
+    const itemProgram = String(getProgramValue(item)).trim().toLowerCase();
     const matchesProgram = selectedProgram === 'ALL' || itemProgram === selectedProgram.trim().toLowerCase();
 
     // SDG Matching
@@ -214,8 +227,8 @@ export default function Leaderboard() {
     let matchesSdg = selectedSdg === 'ALL';
 
     if (!matchesSdg && itemSdg) {
-      const selectedPrefix = selectedSdg.split(':')[0].trim().toLowerCase(); // e.g., "sdg 4"
-      const itemPrefix = itemSdg.split(':')[0].trim().toLowerCase();         // e.g., "sdg 4"
+      const selectedPrefix = selectedSdg.split(':')[0].trim().toLowerCase();
+      const itemPrefix = itemSdg.split(':')[0].trim().toLowerCase();
 
       matchesSdg = itemSdg.toLowerCase().includes(selectedSdg.toLowerCase()) || 
                    itemPrefix === selectedPrefix;
@@ -224,7 +237,6 @@ export default function Leaderboard() {
     return matchesAward && matchesProgram && matchesSdg;
   });
 
-  // Block Screen for Restricted Access
   if (authorized === false) {
     return (
       <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col items-center justify-center p-6 text-center">
@@ -249,7 +261,7 @@ export default function Leaderboard() {
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 p-4 md:p-8 font-sans print:bg-white print:text-black">
       <div className="max-w-6xl mx-auto print:max-w-full space-y-6">
         
-        {/* EXECUTIVE BANNER: Deep Slate Navy Gradient */}
+        {/* EXECUTIVE BANNER */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-6 md:p-8 shadow-md border border-slate-800/80 print:hidden">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
@@ -300,7 +312,7 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* FILTER BAR: Clean Crisp White Card with Indigo Highlights */}
+        {/* FILTER BAR */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 md:p-6 shadow-sm space-y-4 print:hidden">
           
           {/* Medal Filter Buttons */}
@@ -340,7 +352,7 @@ export default function Leaderboard() {
                 <option value="ALL">All Programmes (Show All)</option>
                 {programList.map((prog, idx) => (
                   <option key={idx} value={prog}>
-                    {prog.toUpperCase()}
+                    {prog}
                   </option>
                 ))}
               </select>
@@ -394,6 +406,7 @@ export default function Leaderboard() {
               filteredStandings.map((item, index) => {
                 const supervisorName = item.supervisor_name || item.supervisor;
                 const sdgGoal = getSdgValue(item);
+                const progName = getProgramValue(item);
 
                 return (
                   <div 
@@ -421,9 +434,9 @@ export default function Leaderboard() {
                         )}
 
                         <div className="flex flex-wrap items-center gap-2 mt-2">
-                          {item.program && (
+                          {progName && (
                             <span className="text-[10px] font-extrabold bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-0.5 rounded-lg uppercase">
-                              {item.program}
+                              {progName}
                             </span>
                           )}
 
