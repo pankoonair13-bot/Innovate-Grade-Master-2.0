@@ -10,14 +10,14 @@ const DEFAULT_PROGRAM_OPTIONS = ["DET", "DEP", "DTK"];
 // 17 Sustainable Development Goals List
 const SDG_LIST = [
   "SDG 01: No Poverty",
-  "SDG 2: Zero Hunger",
-  "SDG 3: Good Health and Well-Being",
-  "SDG 4: Quality Education",
-  "SDG 5: Gender Equality",
-  "SDG 6: Clean Water and Sanitation",
-  "SDG 7: Affordable and Clean Energy",
-  "SDG 8: Decent Work and Economic Growth",
-  "SDG 9: Industry, Innovation and Infrastructure",
+  "SDG 02: Zero Hunger",
+  "SDG 03: Good Health and Well-Being",
+  "SDG 04: Quality Education",
+  "SDG 05: Gender Equality",
+  "SDG 06: Clean Water and Sanitation",
+  "SDG 07: Affordable and Clean Energy",
+  "SDG 08: Decent Work and Economic Growth",
+  "SDG 09: Industry, Innovation and Infrastructure",
   "SDG 10: Reduced Inequalities",
   "SDG 11: Sustainable Cities and Communities",
   "SDG 12: Responsible Consumption and Production",
@@ -375,11 +375,14 @@ export default function Leaderboard() {
                 className="bg-white text-slate-800 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold w-full focus:outline-none focus:border-indigo-500 shadow-sm"
               >
                 <option value="ALL">All 17 SDGs (Show All)</option>
-                {SDG_LIST.map((sdg, idx) => (
-                  <option key={idx} value={`SDG ${idx + 1}`}>
-                    {sdg}
-                  </option>
-                ))}
+                {SDG_LIST.map((sdg, idx) => {
+                  const sdgCode = `SDG ${String(idx + 1).padStart(2, '0')}`;
+                  return (
+                    <option key={idx} value={sdgCode}>
+                      {sdg}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>
