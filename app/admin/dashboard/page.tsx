@@ -149,7 +149,7 @@ export default function AdminDashboard() {
     setAssigning(false);
   };
 
-  // RESET ASSIGNMENTS FOR SELECTED JUDGE ONLY
+  // CHOICE 1: RESET ASSIGNMENTS FOR SELECTED JUDGE ONLY
   const handleResetSingleJudge = async () => {
     const judgeTarget = judgeToReset || selectedJudge;
 
@@ -175,19 +175,17 @@ export default function AdminDashboard() {
       setJudgeToReset('');
       setSelectedJudge('');
       setSelectedBooths([]);
-      setIsAssignModalOpen(false);
     }
 
     setAssigning(false);
   };
 
-  // RESET ALL JUDGE ASSIGNMENTS GLOBALLY
+  // CHOICE 2: RESET ALL JUDGE ASSIGNMENTS GLOBALLY
   const handleClearAllAssignments = async () => {
     const isConfirmed = confirm("⚠️ Are you sure you want to CLEAR ALL JUDGE ASSIGNMENTS across all booths?");
     if (!isConfirmed) return;
 
-    setLoading(true);
-    setStatus('Clearing Assignments...');
+    setAssigning(true);
 
     try {
       const { error } = await supabase
@@ -198,12 +196,14 @@ export default function AdminDashboard() {
       if (error) throw error;
 
       alert("✅ All judge assignments have been reset successfully!");
-      window.location.reload();
+      setSelectedJudge('');
+      setJudgeToReset('');
+      setSelectedBooths([]);
+      setIsAssignModalOpen(false);
     } catch (err: any) {
       alert("❌ Error resetting assignments: " + err.message);
     } finally {
-      setLoading(false);
-      setStatus('');
+      setAssigning(false);
     }
   };
 
@@ -594,14 +594,14 @@ export default function AdminDashboard() {
       {/* ASSIGN OR RESET JUDGE MODAL */}
       {isAssignModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col overflow-y-auto">
             
             <div className="mb-4">
               <h3 className="text-base font-black uppercase italic text-slate-900">
-                Manage <span className="text-indigo-600">Judge Booth Assignments</span>
+                Manage <span className="text-indigo-600">Judge Assignments</span>
               </h3>
               <p className="text-[11px] text-slate-500 font-bold uppercase mt-1">
-                Assign new booths or clear existing booth links for a judge.
+                Assign new booths or reset booth links for judges.
               </p>
             </div>
 
@@ -638,17 +638,18 @@ export default function AdminDashboard() {
               </select>
             </div>
 
-            {/* RESET BUTTON FOR SELECTED JUDGE */}
+            {/* CHOICE 1: RESET SPECIFIC SELECTED JUDGE */}
             {selectedJudge && (
-              <div className="mb-4 p-3 bg-rose-50 rounded-2xl border border-rose-100 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-rose-700">
-                  Want to clear current assignments for {selectedJudge}?
-                </span>
+              <div className="mb-4 p-3 bg-amber-50 rounded-2xl border border-amber-200/80 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-amber-800 uppercase">Option A: Reset Selected Judge</p>
+                  <p className="text-[11px] font-bold text-amber-700">Clear assignments for {selectedJudge} only?</p>
+                </div>
                 <button
                   type="button"
                   onClick={handleResetSingleJudge}
                   disabled={assigning}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] uppercase rounded-xl transition-all cursor-pointer shadow-sm"
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] uppercase rounded-xl transition-all cursor-pointer shadow-sm"
                 >
                   {assigning ? "Clearing..." : "Reset Judge"}
                 </button>
@@ -656,7 +657,7 @@ export default function AdminDashboard() {
             )}
 
             {/* 2. Select Booths for Assigning */}
-            <div className="flex-1 overflow-hidden flex flex-col mb-6">
+            <div className="flex-1 overflow-hidden flex flex-col mb-4">
               <div className="flex justify-between items-center mb-2">
                 <label className="text-[10px] font-black uppercase text-slate-400">
                   2. Select Booths to Assign ({selectedBooths.length} Selected)
@@ -670,7 +671,7 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <div className="overflow-y-auto border border-slate-200/80 rounded-2xl p-3 bg-slate-50/50 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56">
+              <div className="overflow-y-auto border border-slate-200/80 rounded-2xl p-3 bg-slate-50/50 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48">
                 {participants.map((p) => {
                   const booth = p.booth_number;
                   if (!booth) return null;
@@ -698,8 +699,8 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Modal Actions */}
-            <div className="flex items-center gap-3">
+            {/* ASSIGNMENT SUBMIT BUTTON */}
+            <div className="flex items-center gap-3 mb-4">
               <button
                 onClick={handleBulkAssign}
                 disabled={assigning || !selectedJudge || selectedBooths.length === 0}
@@ -712,6 +713,22 @@ export default function AdminDashboard() {
                 className="py-3 px-5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs uppercase rounded-xl cursor-pointer"
               >
                 Cancel
+              </button>
+            </div>
+
+            {/* CHOICE 2: RESET ALL JUDGES GLOBALLY */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black text-rose-600 uppercase">Option B: Reset Everyone</p>
+                <p className="text-[10px] text-slate-500 font-medium">Clear assignments across all judges and booths</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearAllAssignments}
+                disabled={assigning}
+                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] uppercase rounded-xl transition-all cursor-pointer shadow-sm"
+              >
+                {assigning ? "Clearing..." : "Reset All Judges"}
               </button>
             </div>
 
