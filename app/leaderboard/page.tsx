@@ -9,7 +9,7 @@ const DEFAULT_PROGRAM_OPTIONS = ["DET", "DEP", "DTK"];
 
 // 17 Sustainable Development Goals List
 const SDG_LIST = [
-  "SDG 1: No Poverty",
+  "SDG 01: No Poverty",
   "SDG 2: Zero Hunger",
   "SDG 3: Good Health and Well-Being",
   "SDG 4: Quality Education",
