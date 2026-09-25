@@ -15,18 +15,15 @@ export default function AdminDashboard() {
   const [imgError, setImgError] = useState(false);
   const [batchName, setBatchName] = useState('');
 
-  // Dashboard Overview & Assignment States
+  // Assignment Modal States
   const [participants, setParticipants] = useState<any[]>([]);
   const [judgesList, setJudgesList] = useState<any[]>([]);
-  const [assignments, setAssignments] = useState<any[]>([]);
-  
-  // Multi-Booth Assignment Modal States
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedJudge, setSelectedJudge] = useState('');
   const [selectedBooths, setSelectedBooths] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
 
-  // Load user role, settings, and dashboard metrics
+  // Load user role and settings
   useEffect(() => {
     setHasMounted(true);
 
@@ -55,30 +52,25 @@ export default function AdminDashboard() {
       }
 
       setToggleLoading(false);
-      fetchDashboardData();
+      fetchModalData();
     }
 
     initDashboard();
   }, []);
 
-  // Fetch Participants, Judges, and Assignments
-  async function fetchDashboardData() {
+  // Fetch data specifically for the Assignment Modal
+  async function fetchModalData() {
     const { data: pData } = await supabase
       .from('participants')
-      .select('*')
+      .select('id, booth_number, project_name')
       .order('booth_number', { ascending: true });
 
     const { data: jData } = await supabase
       .from('profiles')
       .select('*');
 
-    const { data: aData } = await supabase
-      .from('judge_assignments')
-      .select('*');
-
     if (pData) setParticipants(pData);
     if (jData) setJudgesList(jData);
-    if (aData) setAssignments(aData);
   }
 
   const isJudge = role === 'judge';
@@ -101,7 +93,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Toggle Booth Selection for Multi-Assignment Modal
+  // Toggle Booth Selection
   const toggleBoothSelection = (boothNumber: string) => {
     if (selectedBooths.includes(boothNumber)) {
       setSelectedBooths(selectedBooths.filter((b) => b !== boothNumber));
@@ -122,7 +114,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Save Bulk Assignments to Supabase
+  // Save Bulk Assignments
   const handleBulkAssign = async () => {
     if (!selectedJudge) {
       alert("Please select a judge first.");
@@ -149,17 +141,9 @@ export default function AdminDashboard() {
       setSelectedJudge('');
       setSelectedBooths([]);
       setIsAssignModalOpen(false);
-      fetchDashboardData();
     }
 
     setAssigning(false);
-  };
-
-  // Remove Judge Assignment
-  const removeAssignment = async (id: number) => {
-    const { error } = await supabase.from('judge_assignments').delete().eq('id', id);
-    if (error) alert("Error removing assignment: " + error.message);
-    else fetchDashboardData();
   };
 
   // Archive Current Competition & Clear Active Standings
@@ -305,7 +289,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen p-4 md:p-12 font-sans bg-[#f8fafc] text-slate-900 relative">
       <div className="relative z-10 max-w-6xl mx-auto space-y-6">
         
-        {/* HEADER WITH LOGO & QUICK ACTIONS */}
+        {/* HEADER WITH LOGO */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="relative w-14 h-14 flex-shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
@@ -333,19 +317,11 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setIsAssignModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
-            >
-              <span>⚖️</span> Assign Judge to Multiple Booths
-            </button>
-            <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-sm">
-              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest" suppressHydrationWarning>
-                Role: <span className="text-indigo-600 capitalize">{hasMounted ? (role || 'User') : '...'}</span>
-              </span>
-            </div>
+          <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-sm w-fit">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest" suppressHydrationWarning>
+              Logged in as: <span className="text-indigo-600 capitalize">{hasMounted ? (role || 'User') : '...'}</span>
+            </span>
           </div>
         </header>
 
@@ -381,87 +357,10 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        {/* CURRENT ASSIGNMENTS TABLE OVERVIEW */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-black text-slate-900 uppercase italic">
-              Current Booth <span className="text-indigo-600">Assignments</span>
-            </h2>
-            <button
-              onClick={fetchDashboardData}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 uppercase cursor-pointer"
-            >
-              🔄 Refresh Table
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead>
-                <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 border-b border-slate-100">
-                  <th className="p-4">Booth</th>
-                  <th className="p-4">Project Name</th>
-                  <th className="p-4">Assigned Judges</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
-                {participants.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="p-8 text-center text-slate-400 font-bold uppercase">
-                      No registered participants found.
-                    </td>
-                  </tr>
-                ) : (
-                  participants.map((p) => {
-                    const boothJudges = assignments.filter(
-                      (a) => a.booth_number === p.booth_number
-                    );
-
-                    return (
-                      <tr key={p.id} className="hover:bg-slate-50/50">
-                        <td className="p-4 font-black text-indigo-600">
-                          [{p.booth_number || "N/A"}]
-                        </td>
-                        <td className="p-4 font-bold text-slate-800">
-                          {p.project_name || "N/A"}
-                        </td>
-                        <td className="p-4">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {boothJudges.length > 0 ? (
-                              boothJudges.map((j) => (
-                                <span
-                                  key={j.id}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-black uppercase"
-                                >
-                                  ⚖️ {j.judge_name}
-                                  <button
-                                    onClick={() => removeAssignment(j.id)}
-                                    className="text-amber-500 hover:text-red-600 font-black ml-1 cursor-pointer"
-                                    title="Unassign judge"
-                                  >
-                                    ×
-                                  </button>
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-[10px] text-slate-400 font-semibold italic">
-                                Unassigned
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* AUDIT & DIRECTORY CARDS */}
+        {/* MAIN MODULE CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
+          {/* Executive Audit Banner */}
           <Link href="/admin/audit" className="lg:col-span-3">
             <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 rounded-2xl p-8 shadow-md border border-slate-800/80 flex flex-col md:flex-row items-center justify-between group hover:border-slate-700 transition-all cursor-pointer">
               <div className="flex items-center gap-6">
@@ -492,18 +391,26 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Card: Manage Judges */}
+          {/* Card: Manage Judges & Assignments */}
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 flex flex-col group hover:border-indigo-300 transition-all">
             <span className="text-3xl mb-4">⚖️</span>
-            <h2 className="text-xl font-bold text-slate-800">Judge Access</h2>
-            <p className="text-sm text-slate-500 mt-2 mb-6">Assign evaluation roles to specific email accounts.</p>
+            <h2 className="text-xl font-bold text-slate-800">Judge Access & Booths</h2>
+            <p className="text-sm text-slate-500 mt-2 mb-6">Assign judging roles or batch-assign judges to booth numbers.</p>
             <div className="mt-auto flex flex-col gap-2">
-              <Link href="/admin/judges/create" className="w-full py-3 bg-slate-900 text-white text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-sm">
-                + Assign Judge
-              </Link>
-              <Link href="/admin/judges" className="w-full py-3 bg-slate-50 border border-slate-200 text-slate-700 text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-slate-100 transition-colors">
-                View All Judges
-              </Link>
+              <button
+                onClick={() => setIsAssignModalOpen(true)}
+                className="w-full py-3 bg-indigo-600 text-white text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
+              >
+                ⚖️ Assign Judge to Booths
+              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <Link href="/admin/judges/create" className="w-full py-2.5 bg-slate-900 text-white text-center font-bold rounded-xl text-[10px] uppercase tracking-wider hover:bg-slate-800 transition-colors">
+                  + Add Judge
+                </Link>
+                <Link href="/admin/judges" className="w-full py-2.5 bg-slate-50 border border-slate-200 text-slate-700 text-center font-bold rounded-xl text-[10px] uppercase tracking-wider hover:bg-slate-100 transition-colors">
+                  View Judges
+                </Link>
+              </div>
             </div>
           </div>
 
