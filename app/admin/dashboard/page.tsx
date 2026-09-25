@@ -23,6 +23,9 @@ export default function AdminDashboard() {
   const [selectedBooths, setSelectedBooths] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
 
+  // Reset Assignment Specific State
+  const [judgeToReset, setJudgeToReset] = useState('');
+
   // Load user role and settings
   useEffect(() => {
     setHasMounted(true);
@@ -146,6 +149,64 @@ export default function AdminDashboard() {
     setAssigning(false);
   };
 
+  // RESET ASSIGNMENTS FOR SELECTED JUDGE ONLY
+  const handleResetSingleJudge = async () => {
+    const judgeTarget = judgeToReset || selectedJudge;
+
+    if (!judgeTarget) {
+      alert("Please select a judge to reset.");
+      return;
+    }
+
+    const isConfirmed = confirm(`⚠️ Are you sure you want to remove ALL booth assignments for "${judgeTarget}"?`);
+    if (!isConfirmed) return;
+
+    setAssigning(true);
+
+    const { error } = await supabase
+      .from('judge_assignments')
+      .delete()
+      .eq('judge_name', judgeTarget);
+
+    if (error) {
+      alert("❌ Error removing assignments: " + error.message);
+    } else {
+      alert(`✅ Removed all booth assignments for ${judgeTarget}!`);
+      setJudgeToReset('');
+      setSelectedJudge('');
+      setSelectedBooths([]);
+      setIsAssignModalOpen(false);
+    }
+
+    setAssigning(false);
+  };
+
+  // RESET ALL JUDGE ASSIGNMENTS GLOBALLY
+  const handleClearAllAssignments = async () => {
+    const isConfirmed = confirm("⚠️ Are you sure you want to CLEAR ALL JUDGE ASSIGNMENTS across all booths?");
+    if (!isConfirmed) return;
+
+    setLoading(true);
+    setStatus('Clearing Assignments...');
+
+    try {
+      const { error } = await supabase
+        .from('judge_assignments')
+        .delete()
+        .not('id', 'is', null);
+
+      if (error) throw error;
+
+      alert("✅ All judge assignments have been reset successfully!");
+      window.location.reload();
+    } catch (err: any) {
+      alert("❌ Error resetting assignments: " + err.message);
+    } finally {
+      setLoading(false);
+      setStatus('');
+    }
+  };
+
   // Archive Current Competition & Clear Active Standings
   const handleArchiveCompetition = async () => {
     if (!batchName.trim()) {
@@ -222,7 +283,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Fixed Sequential Deletion Handler
   const runAction = async (type: 'scores' | 'all') => {
     const isConfirmed = confirm(
       type === 'scores' 
@@ -289,7 +349,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen p-4 md:p-12 font-sans bg-[#f8fafc] text-slate-900 relative">
       <div className="relative z-10 max-w-6xl mx-auto space-y-6">
         
-        {/* HEADER WITH LOGO */}
+        {/* HEADER */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="relative w-14 h-14 flex-shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
@@ -357,7 +417,7 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        {/* MAIN MODULE CARDS */}
+        {/* MAIN CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
           {/* Executive Audit Banner */}
@@ -376,7 +436,7 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Card: Manage Participants */}
+          {/* Manage Participants */}
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 flex flex-col group hover:border-indigo-300 transition-all">
             <span className="text-3xl mb-4">👥</span>
             <h2 className="text-xl font-bold text-slate-800">Participants</h2>
@@ -391,17 +451,17 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Card: Manage Judges & Assignments */}
+          {/* Manage Judges & Assignments */}
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 flex flex-col group hover:border-indigo-300 transition-all">
             <span className="text-3xl mb-4">⚖️</span>
             <h2 className="text-xl font-bold text-slate-800">Judge Access & Booths</h2>
-            <p className="text-sm text-slate-500 mt-2 mb-6">Assign judging roles or batch-assign judges to booth numbers.</p>
+            <p className="text-sm text-slate-500 mt-2 mb-6">Assign judging roles or manage booth links.</p>
             <div className="mt-auto flex flex-col gap-2">
               <button
                 onClick={() => setIsAssignModalOpen(true)}
                 className="w-full py-3 bg-indigo-600 text-white text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
               >
-                ⚖️ Assign Judge to Booths
+                ⚖️ Assign / Reset Judge Booths
               </button>
               <div className="grid grid-cols-2 gap-2">
                 <Link href="/admin/judges/create" className="w-full py-2.5 bg-slate-900 text-white text-center font-bold rounded-xl text-[10px] uppercase tracking-wider hover:bg-slate-800 transition-colors">
@@ -414,7 +474,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Card: Leaderboard & Archives */}
+          {/* Leaderboard & Archives */}
           {hasMounted && isJudge ? (
             <div className="bg-slate-100 rounded-2xl p-8 border border-slate-200/50 opacity-60 flex flex-col justify-between">
               <div>
@@ -422,22 +482,20 @@ export default function AdminDashboard() {
                   🔒
                 </div>
                 <h2 className="text-xl font-bold text-slate-400 mb-2">Live Leaderboard</h2>
-                <p className="text-slate-400 text-sm">
-                  This setting is restricted to authorized Admins only.
-                </p>
+                <p className="text-slate-400 text-sm">Restricted to authorized Admins only.</p>
               </div>
             </div>
           ) : (
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 flex flex-col group hover:border-emerald-300 transition-all">
               <span className="text-3xl mb-4">🏆</span>
               <h2 className="text-xl font-bold text-slate-800">Standings & Archives</h2>
-              <p className="text-sm text-slate-500 mt-2 mb-6">View live leaderboards or browse historical competition archives.</p>
+              <p className="text-sm text-slate-500 mt-2 mb-6">View live leaderboards or browse historical archives.</p>
               <div className="mt-auto flex flex-col gap-2">
                 <Link href="/leaderboard" className="w-full py-3 bg-emerald-600 text-white text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-emerald-700 transition-colors shadow-sm">
                   Live Standings
                 </Link>
                 <Link href="/admin/past-results" className="w-full py-3 bg-amber-500 text-white text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-amber-600 transition-colors shadow-sm">
-                  Past Competition Archives
+                  Past Archives
                 </Link>
               </div>
             </div>
@@ -446,18 +504,31 @@ export default function AdminDashboard() {
           {/* MAINTENANCE TOOLS */}
           <div className="md:col-span-2 lg:col-span-3 mt-4">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 ml-2 text-slate-400">
-              Maintenance & Database Archiving
+              Maintenance & Reset Tools
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               
-              {/* Archive Competition Tool */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm md:col-span-1">
+              {/* Reset All Assignments */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
                 <div>
-                  <h4 className="font-bold text-slate-800">📦 Archive Competition</h4>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Save current standings into read-only archives before starting a new competition event.
-                  </p>
+                  <h4 className="font-bold text-slate-800">🧹 Clear All Assignments</h4>
+                  <p className="text-xs text-slate-500 mt-1">Remove all booth links for all judges at once.</p>
+                </div>
+                <button 
+                  onClick={handleClearAllAssignments}
+                  disabled={loading}
+                  className="w-full py-3 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-black text-[10px] uppercase hover:bg-slate-200 transition-all disabled:opacity-50 cursor-pointer shadow-sm mt-auto"
+                >
+                  {loading && status.includes('Assignments') ? "Clearing..." : "Reset All Assignments"}
+                </button>
+              </div>
+
+              {/* Archive Competition Tool */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
+                <div>
+                  <h4 className="font-bold text-slate-800">📦 Archive Event</h4>
+                  <p className="text-xs text-slate-500 mt-1">Save active scores to historical archives.</p>
                 </div>
                 
                 <div className="space-y-2">
@@ -473,16 +544,16 @@ export default function AdminDashboard() {
                     disabled={loading}
                     className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black text-[10px] uppercase transition-all disabled:opacity-50 cursor-pointer shadow-sm"
                   >
-                    {loading && status.includes('Archiving') ? "Archiving..." : "Archive & Reset Active"}
+                    {loading && status.includes('Archiving') ? "Archiving..." : "Archive & Reset"}
                   </button>
                 </div>
               </div>
 
-              {/* Clear Scores Tool */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm md:col-span-1">
+              {/* Clear Live Scores Tool */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
                 <div>
                   <h4 className="font-bold text-slate-800">🔄 Clear Live Scores</h4>
-                  <p className="text-xs text-slate-500 mt-1">Keep teams and judges, but delete live leaderboard marks to re-evaluate.</p>
+                  <p className="text-xs text-slate-500 mt-1">Keep participants, delete current scores.</p>
                 </div>
                 <button 
                   onClick={() => runAction('scores')}
@@ -494,17 +565,17 @@ export default function AdminDashboard() {
               </div>
 
               {/* Factory Reset Tool */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm md:col-span-1">
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
                 <div>
                   <h4 className="font-bold text-red-600">🚫 Factory Reset</h4>
-                  <p className="text-xs text-slate-500 mt-1">Completely delete all current participants, judges, and active scores.</p>
+                  <p className="text-xs text-slate-500 mt-1">Completely delete teams, judges, and scores.</p>
                 </div>
                 <button 
                   onClick={() => runAction('all')}
                   disabled={loading}
                   className="w-full py-3 bg-red-50 text-red-600 border border-red-200/80 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer shadow-sm mt-auto"
                 >
-                  {loading && status.includes('Database') ? "Busy..." : "Wipe All Active Data"}
+                  {loading && status.includes('Database') ? "Wiping..." : "Wipe All Active Data"}
                 </button>
               </div>
 
@@ -520,31 +591,34 @@ export default function AdminDashboard() {
         </footer>
       </div>
 
-      {/* MULTI-BOOTH ASSIGN JUDGE MODAL */}
+      {/* ASSIGN OR RESET JUDGE MODAL */}
       {isAssignModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
             
             <div className="mb-4">
               <h3 className="text-base font-black uppercase italic text-slate-900">
-                Assign Judge to <span className="text-indigo-600">Multiple Booths</span>
+                Manage <span className="text-indigo-600">Judge Booth Assignments</span>
               </h3>
               <p className="text-[11px] text-slate-500 font-bold uppercase mt-1">
-                Select a judge and tick all booth numbers you wish to assign.
+                Assign new booths or clear existing booth links for a judge.
               </p>
             </div>
 
-            {/* Step 1: Select Judge */}
+            {/* 1. Select Judge Dropdown */}
             <div className="mb-4">
               <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
-                1. Select Judge
+                1. Select Target Judge
               </label>
               <select
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold uppercase text-slate-800 outline-none focus:border-indigo-600 cursor-pointer"
                 value={selectedJudge}
-                onChange={(e) => setSelectedJudge(e.target.value)}
+                onChange={(e) => {
+                  setSelectedJudge(e.target.value);
+                  setJudgeToReset(e.target.value);
+                }}
               >
-                <option value="">-- Select Registered Judge --</option>
+                <option value="">-- Choose Judge --</option>
                 {judgesList.length > 0 ? (
                   judgesList.map((j) => {
                     const name = j.full_name || j.name || j.email || `Judge ${j.id}`;
@@ -564,11 +638,28 @@ export default function AdminDashboard() {
               </select>
             </div>
 
-            {/* Step 2: Select Booths */}
+            {/* RESET BUTTON FOR SELECTED JUDGE */}
+            {selectedJudge && (
+              <div className="mb-4 p-3 bg-rose-50 rounded-2xl border border-rose-100 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-rose-700">
+                  Want to clear current assignments for {selectedJudge}?
+                </span>
+                <button
+                  type="button"
+                  onClick={handleResetSingleJudge}
+                  disabled={assigning}
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] uppercase rounded-xl transition-all cursor-pointer shadow-sm"
+                >
+                  {assigning ? "Clearing..." : "Reset Judge"}
+                </button>
+              </div>
+            )}
+
+            {/* 2. Select Booths for Assigning */}
             <div className="flex-1 overflow-hidden flex flex-col mb-6">
               <div className="flex justify-between items-center mb-2">
                 <label className="text-[10px] font-black uppercase text-slate-400">
-                  2. Select Booth Numbers ({selectedBooths.length} Selected)
+                  2. Select Booths to Assign ({selectedBooths.length} Selected)
                 </label>
                 <button
                   type="button"
@@ -579,7 +670,7 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <div className="overflow-y-auto border border-slate-200/80 rounded-2xl p-3 bg-slate-50/50 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60">
+              <div className="overflow-y-auto border border-slate-200/80 rounded-2xl p-3 bg-slate-50/50 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56">
                 {participants.map((p) => {
                   const booth = p.booth_number;
                   if (!booth) return null;
@@ -607,7 +698,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Modal Controls */}
+            {/* Modal Actions */}
             <div className="flex items-center gap-3">
               <button
                 onClick={handleBulkAssign}
