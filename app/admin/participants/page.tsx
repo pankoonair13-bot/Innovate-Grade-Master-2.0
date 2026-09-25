@@ -2,11 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 
 export default function ParticipantsPage() {
   const [participants, setParticipants] = useState<any[]>([]);
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [judgesList, setJudgesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Inline Editing State
@@ -20,10 +19,6 @@ export default function ParticipantsPage() {
     supervisor_name: ''
   });
 
-  // Judge Assignment Modal State
-  const [activeBoothForJudge, setActiveBoothForJudge] = useState<string | null>(null);
-  const [selectedJudge, setSelectedJudge] = useState('');
-
   useEffect(() => {
     fetchData();
   }, []);
@@ -31,53 +26,15 @@ export default function ParticipantsPage() {
   async function fetchData() {
     setLoading(true);
     
-    // 1. Fetch Participants
+    // Fetch Participants
     const { data: pData } = await supabase
       .from('participants')
       .select('*')
       .order('booth_number', { ascending: true });
 
-    // 2. Fetch Judge Assignments
-    const { data: aData } = await supabase
-      .from('judge_assignments')
-      .select('*');
-
-    // 3. Fetch Registered Judges
-    const { data: jData } = await supabase
-      .from('profiles')
-      .select('*');
-
     if (pData) setParticipants(pData);
-    if (aData) setAssignments(aData);
-    if (jData) setJudgesList(jData);
-
     setLoading(false);
   }
-
-  // Assign Selected Judge to Booth
-  const assignJudge = async (boothNumber: string) => {
-    if (!selectedJudge) return;
-
-    const payload = {
-      judge_name: selectedJudge,
-      booth_number: boothNumber
-    };
-
-    const { error } = await supabase.from('judge_assignments').insert([payload]);
-
-    if (error) {
-      alert("❌ Error assigning judge: " + error.message);
-    } else {
-      setSelectedJudge('');
-      fetchData();
-    }
-  };
-
-  // Remove Judge from Booth
-  const removeJudgeAssignment = async (id: number) => {
-    await supabase.from('judge_assignments').delete().eq('id', id);
-    fetchData();
-  };
 
   // Start Inline Editing for a Row
   const startInlineEdit = (p: any) => {
@@ -86,7 +43,7 @@ export default function ParticipantsPage() {
       project_name: p.project_name || '',
       booth_number: p.booth_number || '',
       team_name: p.team_name || p.name || '',
-      program: p.program || '',
+      program: p.program || p.programme || '',
       project_sdg: p.project_sdg || p.project_theme || p.theme || '',
       supervisor_name: p.supervisor_name || p.supervisor || ''
     });
@@ -99,8 +56,9 @@ export default function ParticipantsPage() {
       booth_number: editForm.booth_number.trim(),
       team_name: editForm.team_name.trim(),
       program: editForm.program.trim(),
+      programme: editForm.program.trim(),
       project_sdg: editForm.project_sdg.trim(),
-      project_theme: editForm.project_sdg.trim(), // Keep backwards compatibility
+      project_theme: editForm.project_sdg.trim(),
       supervisor_name: editForm.supervisor_name.trim()
     };
 
@@ -141,25 +99,40 @@ export default function ParticipantsPage() {
     <div className="min-h-screen bg-slate-50 p-4 md:p-10 font-sans">
       <div className="max-w-7xl mx-auto">
         
+        {/* Header Section */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tight">
-              Manage <span className="text-blue-600">Participants & Judges</span>
+              Manage <span className="text-blue-600">Participants Directory</span>
             </h1>
             <p className="text-xs text-slate-500 font-bold uppercase mt-1">
-              Assign judges to specific booths and edit details inline.
+              View and edit project details, booth numbers, and team leads inline.
             </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchData}
+              className="bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl border border-slate-200/80 shadow-sm transition-all cursor-pointer"
+            >
+              🔄 Refresh
+            </button>
+            <Link
+              href="/admin/dashboard"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl shadow-sm transition-all"
+            >
+              ← Dashboard
+            </Link>
           </div>
         </div>
 
         {/* PARTICIPANTS TABLE */}
         <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="p-6 text-[10px] font-black uppercase text-slate-400">Project / Team / Supervisor</th>
                 <th className="p-6 text-[10px] font-black uppercase text-slate-400">Booth / Prog / SDG</th>
-                <th className="p-6 text-[10px] font-black uppercase text-slate-400">Assigned Judges</th>
                 <th className="p-6 text-[10px] font-black uppercase text-slate-400 text-right">Actions</th>
               </tr>
             </thead>
@@ -168,10 +141,7 @@ export default function ParticipantsPage() {
                 const isEditing = editingId === p.id;
                 const projectSDG = p.project_sdg || p.project_theme || p.theme || 'N/A';
                 const supervisorName = p.supervisor_name || p.supervisor || 'N/A';
-                
-                const boothJudges = assignments.filter(
-                  (a) => a.booth_number === p.booth_number
-                );
+                const programName = p.program || p.programme || 'N/A';
 
                 return (
                   <tr key={p.id} className={isEditing ? "bg-blue-50/40" : "hover:bg-slate-50/50 transition-colors"}>
@@ -226,9 +196,6 @@ export default function ParticipantsPage() {
                             onChange={(e) => setEditForm({...editForm, project_sdg: e.target.value})}
                           />
                         </td>
-                        <td className="p-4 text-xs font-bold text-slate-400 italic">
-                          Editing details...
-                        </td>
                         <td className="p-4 text-right align-middle">
                           <div className="flex items-center justify-end gap-2">
                             <button 
@@ -258,34 +225,15 @@ export default function ParticipantsPage() {
                         </td>
                         <td className="p-6">
                           <div className="flex flex-wrap gap-1">
-                            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[9px] font-black uppercase">{p.booth_number}</span>
-                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[9px] font-black uppercase">{p.program || 'N/A'}</span>
-                            <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg text-[9px] font-black uppercase">SDG: {projectSDG}</span>
-                          </div>
-                        </td>
-                        <td className="p-6">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {boothJudges.map((j) => (
-                              <span key={j.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-black uppercase">
-                                ⚖️ {j.judge_name}
-                                <button 
-                                  onClick={() => removeJudgeAssignment(j.id)}
-                                  className="text-amber-500 hover:text-red-600 ml-1 font-bold cursor-pointer"
-                                >
-                                  ×
-                                </button>
-                              </span>
-                            ))}
-
-                            <button 
-                              onClick={() => {
-                                setActiveBoothForJudge(p.booth_number);
-                                setSelectedJudge('');
-                              }}
-                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
-                            >
-                              + Assign Judge
-                            </button>
+                            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[9px] font-black uppercase">
+                              [{p.booth_number}]
+                            </span>
+                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[9px] font-black uppercase">
+                              {programName}
+                            </span>
+                            <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg text-[9px] font-black uppercase">
+                              SDG: {projectSDG}
+                            </span>
                           </div>
                         </td>
                         <td className="p-6 text-right">
@@ -308,66 +256,6 @@ export default function ParticipantsPage() {
         </div>
 
       </div>
-
-      {/* ASSIGN JUDGE DROPDOWN MODAL */}
-      {activeBoothForJudge && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
-            <h3 className="text-sm font-black uppercase text-slate-800 mb-1">
-              Assign Judge to Booth <span className="text-blue-600">{activeBoothForJudge}</span>
-            </h3>
-            <p className="text-[11px] text-slate-400 font-bold uppercase mb-4">
-              Select a judge from the list to grant scoring permission.
-            </p>
-
-            <select
-              className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold uppercase outline-none focus:border-blue-500 mb-4 cursor-pointer text-slate-800"
-              value={selectedJudge}
-              onChange={(e) => setSelectedJudge(e.target.value)}
-            >
-              <option value="">-- Choose a Judge --</option>
-              {judgesList.length > 0 ? (
-                judgesList.map((j) => {
-                  const name = j.full_name || j.name || j.email || `Judge ${j.id}`;
-                  return (
-                    <option key={j.id} value={name}>
-                      {name}
-                    </option>
-                  );
-                })
-              ) : (
-                <>
-                  <option value="DEROSHAN">DEROSHAN</option>
-                  <option value="JUDGE 1">JUDGE 1</option>
-                  <option value="JUDGE 2">JUDGE 2</option>
-                  <option value="JUDGE 3">JUDGE 3</option>
-                  <option value="DR. LEE">DR. LEE</option>
-                  <option value="PROF. AHMAD">PROF. AHMAD</option>
-                </>
-              )}
-            </select>
-
-            <div className="flex gap-2">
-              <button 
-                onClick={() => {
-                  assignJudge(activeBoothForJudge);
-                  setActiveBoothForJudge(null);
-                }}
-                disabled={!selectedJudge}
-                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black text-xs uppercase rounded-xl shadow cursor-pointer transition-all"
-              >
-                Assign
-              </button>
-              <button 
-                onClick={() => setActiveBoothForJudge(null)}
-                className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs uppercase rounded-xl cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
