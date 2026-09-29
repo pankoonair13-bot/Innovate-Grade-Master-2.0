@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import * as XLSX from "xlsx";
 
 // Defined Programmes List matching CreateParticipant options
 const DEFAULT_PROGRAM_OPTIONS = ["DET", "DEP", "DTK"];
@@ -42,7 +43,14 @@ export default function PastResultsPage() {
   // Helper functions to safely extract Programme and SDG values
   const getProgramValue = (item: any) => {
     if (!item) return "";
-    return item.program || item.programme || item.department || item.dept || item.course || "";
+    return (
+      item.program ||
+      item.programme ||
+      item.department ||
+      item.dept ||
+      item.course ||
+      ""
+    );
   };
 
   const getSdgValue = (item: any) => {
@@ -133,6 +141,48 @@ export default function PastResultsPage() {
     });
   }, [records, selectedAward, selectedProgram, selectedSdg]);
 
+  // Export Filtered Archives to Excel (.xlsx)
+  const exportToExcel = () => {
+    if (filteredRecords.length === 0) return alert("No data available to export!");
+
+    const excelData = filteredRecords.map((item, index) => {
+      const sdgVal = getSdgValue(item);
+      const progVal = getProgramValue(item);
+      return {
+        "Rank": index + 1,
+        "Project Title": (item.project_name || "No Project Title").toUpperCase(),
+        "Team": (item.team_name || item.name || "N/A").toUpperCase(),
+        "Supervisor": (item.supervisor_name || item.supervisor || "N/A").toUpperCase(),
+        "Program": progVal ? String(progVal).toUpperCase() : "N/A",
+        "SDG": sdgVal ? String(sdgVal).toUpperCase() : "N/A",
+        "Award Medal": item.award || "N/A",
+        "Final Score": `${Number(item.final_score || 0).toFixed(2)}%`
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Past Results");
+
+    const max_width = (key: string) => {
+      return excelData.reduce((w, r) => Math.max(w, String((r as any)[key] || '').length), key.length) + 4;
+    };
+
+    worksheet['!cols'] = [
+      { wch: 8 },                          // Rank
+      { wch: max_width("Project Title") }, // Project Title
+      { wch: max_width("Team") },          // Team
+      { wch: max_width("Supervisor") },    // Supervisor
+      { wch: max_width("Program") },       // Program
+      { wch: max_width("SDG") },           // SDG
+      { wch: 16 },                         // Award Medal
+      { wch: 16 }                          // Final Score
+    ];
+
+    const fileName = selectedBatch ? `${selectedBatch}_Results.xlsx` : "Past_Results.xlsx";
+    XLSX.writeFile(workbook, fileName);
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 p-4 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -164,6 +214,14 @@ export default function PastResultsPage() {
                 </select>
               </div>
             )}
+
+            {/* Excel Download Button */}
+            <button
+              onClick={exportToExcel}
+              className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+            >
+              📊 Excel
+            </button>
 
             <Link
               href="/admin/dashboard"
