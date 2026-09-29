@@ -7,17 +7,17 @@ import Link from "next/link";
 // Defined Programmes List matching CreateParticipant options
 const DEFAULT_PROGRAM_OPTIONS = ["DET", "DEP", "DTK"];
 
-// 17 Sustainable Development Goals List
+// 17 Sustainable Development Goals List (SDG 01, SDG 2, SDG 3, ...)
 const SDG_LIST = [
   "SDG 01: No Poverty",
-  "SDG 02: Zero Hunger",
-  "SDG 03: Good Health and Well-Being",
-  "SDG 04: Quality Education",
-  "SDG 05: Gender Equality",
-  "SDG 06: Clean Water and Sanitation",
-  "SDG 07: Affordable and Clean Energy",
-  "SDG 08: Decent Work and Economic Growth",
-  "SDG 09: Industry, Innovation and Infrastructure",
+  "SDG 2: Zero Hunger",
+  "SDG 3: Good Health and Well-Being",
+  "SDG 4: Quality Education",
+  "SDG 5: Gender Equality",
+  "SDG 6: Clean Water and Sanitation",
+  "SDG 7: Affordable and Clean Energy",
+  "SDG 8: Decent Work and Economic Growth",
+  "SDG 9: Industry, Innovation and Infrastructure",
   "SDG 10: Reduced Inequalities",
   "SDG 11: Sustainable Cities and Communities",
   "SDG 12: Responsible Consumption and Production",
@@ -234,7 +234,7 @@ export default function PastResultsPage() {
               >
                 <option value="ALL">All 17 SDGs (Show All)</option>
                 {SDG_LIST.map((sdg, idx) => {
-                  const sdgCode = `SDG ${String(idx + 1).padStart(2, "0")}`;
+                  const sdgCode = idx === 0 ? "SDG 01" : `SDG ${idx + 1}`;
                   return (
                     <option key={idx} value={sdgCode}>
                       {sdg}
