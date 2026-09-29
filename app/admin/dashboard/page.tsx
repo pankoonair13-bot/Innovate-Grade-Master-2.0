@@ -22,6 +22,7 @@ export default function AdminDashboard() {
   const [selectedJudge, setSelectedJudge] = useState('');
   const [selectedBooths, setSelectedBooths] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
+  const [boothSearch, setBoothSearch] = useState(''); // 🔍 Added search query state
 
   // Reset Assignment Specific State
   const [judgeToReset, setJudgeToReset] = useState('');
@@ -105,15 +106,30 @@ export default function AdminDashboard() {
     }
   };
 
-  // Select / Deselect All Booths
+  // Filtered Participants based on Search Input
+  const filteredParticipants = participants.filter((p) => {
+    if (!p.booth_number) return false;
+    const query = boothSearch.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      p.booth_number.toString().toLowerCase().includes(query) ||
+      (p.project_name && p.project_name.toLowerCase().includes(query))
+    );
+  });
+
+  // Select / Deselect All Filtered Booths
   const toggleSelectAllBooths = () => {
-    if (selectedBooths.length === participants.length) {
-      setSelectedBooths([]);
+    const visibleBooths = filteredParticipants
+      .map((p) => p.booth_number)
+      .filter(Boolean);
+
+    const allVisibleSelected = visibleBooths.every((b) => selectedBooths.includes(b));
+
+    if (allVisibleSelected) {
+      setSelectedBooths(selectedBooths.filter((b) => !visibleBooths.includes(b)));
     } else {
-      const allBooths = participants
-        .map((p) => p.booth_number)
-        .filter(Boolean);
-      setSelectedBooths(allBooths);
+      const merged = Array.from(new Set([...selectedBooths, ...visibleBooths]));
+      setSelectedBooths(merged);
     }
   };
 
@@ -663,35 +679,61 @@ export default function AdminDashboard() {
                   onClick={toggleSelectAllBooths}
                   className="text-[10px] font-black uppercase text-indigo-600 hover:underline cursor-pointer"
                 >
-                  {selectedBooths.length === participants.length ? "Deselect All" : "Select All"}
+                  Select / Deselect Visible
                 </button>
               </div>
 
-              <div className="overflow-y-auto border border-slate-200/80 rounded-2xl p-3 bg-slate-50/50 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48">
-                {participants.map((p) => {
-                  const booth = p.booth_number;
-                  if (!booth) return null;
-                  const isChecked = selectedBooths.includes(booth);
+              {/* 🔍 SEARCH BOOTH INPUT */}
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  placeholder="🔍 Search booth number or project name..."
+                  value={boothSearch}
+                  onChange={(e) => setBoothSearch(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400"
+                />
+                {boothSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setBoothSearch('')}
+                    className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600 font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
 
-                  return (
-                    <label
-                      key={p.id}
-                      className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-black uppercase cursor-pointer transition-all ${
-                        isChecked
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={isChecked}
-                        onChange={() => toggleBoothSelection(booth)}
-                      />
-                      <span>[{booth}]</span>
-                    </label>
-                  );
-                })}
+              <div className="overflow-y-auto border border-slate-200/80 rounded-2xl p-3 bg-slate-50/50 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48">
+                {filteredParticipants.length > 0 ? (
+                  filteredParticipants.map((p) => {
+                    const booth = p.booth_number;
+                    if (!booth) return null;
+                    const isChecked = selectedBooths.includes(booth);
+
+                    return (
+                      <label
+                        key={p.id}
+                        className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-black uppercase cursor-pointer transition-all ${
+                          isChecked
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={isChecked}
+                          onChange={() => toggleBoothSelection(booth)}
+                        />
+                        <span>[{booth}]</span>
+                      </label>
+                    );
+                  })
+                ) : (
+                  <div className="col-span-full text-center py-4 text-xs font-bold text-slate-400">
+                    No booths found matching "{boothSearch}"
+                  </div>
+                )}
               </div>
             </div>
 
@@ -705,7 +747,10 @@ export default function AdminDashboard() {
                 {assigning ? "Assigning..." : `Assign (${selectedBooths.length} Booths)`}
               </button>
               <button
-                onClick={() => setIsAssignModalOpen(false)}
+                onClick={() => {
+                  setIsAssignModalOpen(false);
+                  setBoothSearch('');
+                }}
                 className="py-3 px-5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs uppercase rounded-xl cursor-pointer"
               >
                 Cancel
