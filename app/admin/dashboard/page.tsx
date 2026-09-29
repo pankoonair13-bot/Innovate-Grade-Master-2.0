@@ -419,22 +419,6 @@ export default function AdminDashboard() {
 
         {/* MAIN CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-          {/* Executive Audit Banner */}
-          <Link href="/admin/audit" className="lg:col-span-3">
-            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 rounded-2xl p-8 shadow-md border border-slate-800/80 flex flex-col md:flex-row items-center justify-between group hover:border-slate-700 transition-all cursor-pointer">
-              <div className="flex items-center gap-6">
-                <span className="text-5xl">📊</span>
-                <div>
-                  <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Judge Readiness Tracker</h2>
-                  <p className="text-slate-300 text-sm font-medium mt-1">Check which booths are "Ready" and which are "Pending" marks.</p>
-                </div>
-              </div>
-              <div className="mt-6 md:mt-0 bg-white/10 hover:bg-white/20 px-6 py-3 rounded-xl text-white font-black text-xs uppercase tracking-widest border border-white/10 group-hover:scale-105 transition-transform">
-                Open Audit Log →
-              </div>
-            </div>
-          </Link>
 
           {/* Manage Participants */}
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 flex flex-col group hover:border-indigo-300 transition-all">
