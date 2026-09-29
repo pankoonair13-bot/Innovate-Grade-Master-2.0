@@ -418,7 +418,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* MAIN CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
           {/* Manage Participants */}
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 flex flex-col group hover:border-indigo-300 transition-all">
@@ -458,6 +458,18 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Scoring Criteria & Rubric */}
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 flex flex-col group hover:border-indigo-300 transition-all">
+            <span className="text-3xl mb-4">📝</span>
+            <h2 className="text-xl font-bold text-slate-800">Criteria & Rubrics</h2>
+            <p className="text-sm text-slate-500 mt-2 mb-6">Configure evaluation weights, criteria labels, and rubric scale text.</p>
+            <div className="mt-auto flex flex-col gap-2">
+              <Link href="/admin/criteria" className="w-full py-3 bg-indigo-600 text-white text-center font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-indigo-700 transition-colors shadow-sm">
+                ⚙️ Setup Criteria
+              </Link>
+            </div>
+          </div>
+
           {/* Leaderboard & Archives */}
           {hasMounted && isJudge ? (
             <div className="bg-slate-100 rounded-2xl p-8 border border-slate-200/50 opacity-60 flex flex-col justify-between">
@@ -485,87 +497,87 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* MAINTENANCE TOOLS */}
-          <div className="md:col-span-2 lg:col-span-3 mt-4">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 ml-2 text-slate-400">
-              Maintenance & Reset Tools
-            </h3>
+        </div>
+
+        {/* MAINTENANCE TOOLS */}
+        <div className="mt-4">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 ml-2 text-slate-400">
+            Maintenance & Reset Tools
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              
-              {/* Reset All Assignments */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
-                <div>
-                  <h4 className="font-bold text-slate-800">🧹 Clear All Assignments</h4>
-                  <p className="text-xs text-slate-500 mt-1">Remove all booth links for all judges at once.</p>
-                </div>
-                <button 
-                  onClick={handleClearAllAssignments}
-                  disabled={loading}
-                  className="w-full py-3 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-black text-[10px] uppercase hover:bg-slate-200 transition-all disabled:opacity-50 cursor-pointer shadow-sm mt-auto"
-                >
-                  {loading && status.includes('Assignments') ? "Clearing..." : "Reset All Assignments"}
-                </button>
+            {/* Reset All Assignments */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
+              <div>
+                <h4 className="font-bold text-slate-800">🧹 Clear All Assignments</h4>
+                <p className="text-xs text-slate-500 mt-1">Remove all booth links for all judges at once.</p>
               </div>
-
-              {/* Archive Competition Tool */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
-                <div>
-                  <h4 className="font-bold text-slate-800">📦 Archive Event</h4>
-                  <p className="text-xs text-slate-500 mt-1">Save active scores to historical archives.</p>
-                </div>
-                
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    placeholder="Batch Tag (e.g. FIP 2026)"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-indigo-600"
-                    value={batchName}
-                    onChange={(e) => setBatchName(e.target.value)}
-                  />
-                  <button 
-                    onClick={handleArchiveCompetition}
-                    disabled={loading}
-                    className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black text-[10px] uppercase transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-                  >
-                    {loading && status.includes('Archiving') ? "Archiving..." : "Archive & Reset"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Clear Live Scores Tool */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
-                <div>
-                  <h4 className="font-bold text-slate-800">🔄 Clear Live Scores</h4>
-                  <p className="text-xs text-slate-500 mt-1">Keep participants, delete current scores.</p>
-                </div>
-                <button 
-                  onClick={() => runAction('scores')}
-                  disabled={loading}
-                  className="w-full py-3 bg-amber-50 text-amber-700 border border-amber-200/80 rounded-xl font-black text-[10px] uppercase hover:bg-amber-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer shadow-sm mt-auto"
-                >
-                  {loading && status.includes('Standings') ? "Busy..." : "Reset Live Scores"}
-                </button>
-              </div>
-
-              {/* Factory Reset Tool */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
-                <div>
-                  <h4 className="font-bold text-red-600">🚫 Factory Reset</h4>
-                  <p className="text-xs text-slate-500 mt-1">Completely delete teams, judges, and scores.</p>
-                </div>
-                <button 
-                  onClick={() => runAction('all')}
-                  disabled={loading}
-                  className="w-full py-3 bg-red-50 text-red-600 border border-red-200/80 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer shadow-sm mt-auto"
-                >
-                  {loading && status.includes('Database') ? "Wiping..." : "Wipe All Active Data"}
-                </button>
-              </div>
-
+              <button 
+                onClick={handleClearAllAssignments}
+                disabled={loading}
+                className="w-full py-3 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-black text-[10px] uppercase hover:bg-slate-200 transition-all disabled:opacity-50 cursor-pointer shadow-sm mt-auto"
+              >
+                {loading && status.includes('Assignments') ? "Clearing..." : "Reset All Assignments"}
+              </button>
             </div>
-          </div>
 
+            {/* Archive Competition Tool */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
+              <div>
+                <h4 className="font-bold text-slate-800">📦 Archive Event</h4>
+                <p className="text-xs text-slate-500 mt-1">Save active scores to historical archives.</p>
+              </div>
+              
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Batch Tag (e.g. FIP 2026)"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-indigo-600"
+                  value={batchName}
+                  onChange={(e) => setBatchName(e.target.value)}
+                />
+                <button 
+                  onClick={handleArchiveCompetition}
+                  disabled={loading}
+                  className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black text-[10px] uppercase transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                >
+                  {loading && status.includes('Archiving') ? "Archiving..." : "Archive & Reset"}
+                </button>
+              </div>
+            </div>
+
+            {/* Clear Live Scores Tool */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
+              <div>
+                <h4 className="font-bold text-slate-800">🔄 Clear Live Scores</h4>
+                <p className="text-xs text-slate-500 mt-1">Keep participants, delete current scores.</p>
+              </div>
+              <button 
+                onClick={() => runAction('scores')}
+                disabled={loading}
+                className="w-full py-3 bg-amber-50 text-amber-700 border border-amber-200/80 rounded-xl font-black text-[10px] uppercase hover:bg-amber-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer shadow-sm mt-auto"
+              >
+                {loading && status.includes('Standings') ? "Busy..." : "Reset Live Scores"}
+              </button>
+            </div>
+
+            {/* Factory Reset Tool */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-col justify-between gap-4 shadow-sm">
+              <div>
+                <h4 className="font-bold text-red-600">🚫 Factory Reset</h4>
+                <p className="text-xs text-slate-500 mt-1">Completely delete teams, judges, and scores.</p>
+              </div>
+              <button 
+                onClick={() => runAction('all')}
+                disabled={loading}
+                className="w-full py-3 bg-red-50 text-red-600 border border-red-200/80 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50 cursor-pointer shadow-sm mt-auto"
+              >
+                {loading && status.includes('Database') ? "Wiping..." : "Wipe All Active Data"}
+              </button>
+            </div>
+
+          </div>
         </div>
 
         <footer className="mt-16 text-center pb-10">
