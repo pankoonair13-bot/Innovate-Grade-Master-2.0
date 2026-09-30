@@ -49,15 +49,23 @@ export default function ParticipantsPage() {
     });
   };
 
-  // Save Inline Edit
+  // Save Inline Edit with Fallbacks for Column Names
   const saveInlineEdit = async (id: string | number) => {
-    const payload: Record<string, any> = {
-      project_name: editForm.project_name.trim(),
-      booth_number: editForm.booth_number.trim(),
-      team_name: editForm.team_name.trim(),
-      program: editForm.program.trim(),
-      project_sdg: editForm.project_sdg.trim(),
-      supervisor_name: editForm.supervisor_name.trim()
+    const valProjectName = editForm.project_name.trim();
+    const valBoothNumber = editForm.booth_number.trim();
+    const valTeamName = editForm.team_name.trim();
+    const valProgram = editForm.program.trim();
+    const valSdg = editForm.project_sdg.trim();
+    const valSupervisor = editForm.supervisor_name.trim();
+
+    // 1. Try primary payload with project_sdg and supervisor_name
+    let payload: Record<string, any> = {
+      project_name: valProjectName,
+      booth_number: valBoothNumber,
+      team_name: valTeamName,
+      program: valProgram,
+      project_sdg: valSdg,
+      supervisor_name: valSupervisor
     };
 
     let { error } = await supabase
@@ -65,16 +73,22 @@ export default function ParticipantsPage() {
       .update(payload)
       .eq('id', id);
 
+    // 2. Fallback if project_sdg doesn't exist -> try project_theme
+    if (error && error.message.includes("project_sdg")) {
+      delete payload.project_sdg;
+      payload.project_theme = valSdg;
+
+      const res = await supabase.from('participants').update(payload).eq('id', id);
+      error = res.error;
+    }
+
+    // 3. Fallback if supervisor_name doesn't exist -> try supervisor
     if (error && error.message.includes("supervisor_name")) {
-      payload.supervisor = editForm.supervisor_name.trim();
       delete payload.supervisor_name;
+      payload.supervisor = valSupervisor;
 
-      const fallbackResult = await supabase
-        .from('participants')
-        .update(payload)
-        .eq('id', id);
-
-      error = fallbackResult.error;
+      const res = await supabase.from('participants').update(payload).eq('id', id);
+      error = res.error;
     }
 
     if (error) {
