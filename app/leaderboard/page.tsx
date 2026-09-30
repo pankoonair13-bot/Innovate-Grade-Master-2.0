@@ -158,7 +158,7 @@ export default function Leaderboard() {
         } else if (avg >= 70) {
           award = "SILVER";
           awardColor = "text-slate-700 border-slate-300 bg-slate-100";
-        } else if (avg >= 50) {
+        } else if (avg >= 60) {
           award = "BRONZE";
           awardColor = "text-amber-900 border-amber-300 bg-amber-100/60";
         }
