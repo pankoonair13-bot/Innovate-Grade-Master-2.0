@@ -56,9 +56,7 @@ export default function ParticipantsPage() {
       booth_number: editForm.booth_number.trim(),
       team_name: editForm.team_name.trim(),
       program: editForm.program.trim(),
-      programme: editForm.program.trim(),
       project_sdg: editForm.project_sdg.trim(),
-      project_theme: editForm.project_sdg.trim(),
       supervisor_name: editForm.supervisor_name.trim()
     };
 
