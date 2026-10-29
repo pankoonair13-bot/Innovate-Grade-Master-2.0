@@ -596,47 +596,25 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* DEVELOPER & SUPERVISOR PROFILE SECTION */}
+        {/* PROJECT TEAM & SUPERVISION SECTION */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8 mt-8">
-          <div className="text-center max-w-xl mx-auto mb-8">
+          <div className="text-center max-w-xl mx-auto mb-6">
             <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900">Project Team & Supervision</h3>
             <p className="text-xs text-slate-500 mt-1">Innovate Grade Master 2.0 Development & Academic Oversight</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
             
             {/* Student / Developer Card */}
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-center flex flex-col items-center">
-              <div className="w-24 h-24 rounded-full overflow-hidden mb-4 shadow-md border-2 border-indigo-500 bg-slate-200">
-                <img 
-                  src="/my-pic.jpg" 
-                  alt="Student Developer" 
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              </div>
-              <span className="bg-indigo-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-md mb-2 tracking-wider">Student Developer</span>
-              <h4 className="font-black text-base text-slate-900">Pankoo Nair</h4>
-              <p className="text-xs text-slate-500 mt-1">Lead Software Developer & System Architect</p>
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-center">
+              <span className="bg-indigo-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-md mb-3 inline-block tracking-wider">Student Developer</span>
+              <h4 className="font-black text-base text-slate-900">PANKOO NAIR A/L SATHIAN</h4>
             </div>
 
             {/* Supervisor / Lecturer Card */}
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-center flex flex-col items-center">
-              <div className="w-24 h-24 rounded-full overflow-hidden mb-4 shadow-md border-2 border-slate-700 bg-slate-200">
-                <img 
-                  src="/supervisor-pic.jpg" 
-                  alt="Supervisor Lecturer" 
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              </div>
-              <span className="bg-slate-800 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-md mb-2 tracking-wider">Lecturer / Supervisor</span>
-              <h4 className="font-black text-base text-slate-900">Supervisor Name</h4>
-              <p className="text-xs text-slate-500 mt-1">Academic Supervisor & Project Advisor</p>
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-center">
+              <span className="bg-slate-800 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-md mb-3 inline-block tracking-wider">Lecturer / Supervisor</span>
+              <h4 className="font-black text-base text-slate-900">SHAHIDZWAN BIN A. RAHIM</h4>
             </div>
 
           </div>
