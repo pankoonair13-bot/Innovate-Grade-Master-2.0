@@ -180,9 +180,13 @@ export default function ScoringPanel() {
     return criteria.reduce((acc, c) => acc + ((marks[c.id] || 0) * (c.weight || 1)), 0);
   };
 
+  // Check if every criteria has a mark greater than 0
+  const isAllCriteriaFilled = criteria.length > 0 && criteria.every(c => marks[c.id] && marks[c.id] > 0);
+
   const handleSubmit = async () => {
     if (!selectedId) return alert("Please select a project first!");
     if (!user) return alert("Session expired. Please log in again.");
+    if (!isAllCriteriaFilled) return alert("Please fill in a mark for every criteria before submitting.");
 
     setSubmitting(true);
     try {
@@ -345,7 +349,7 @@ export default function ScoringPanel() {
           </div>
           <button 
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || !isAllCriteriaFilled}
             className="bg-blue-600 text-white px-8 md:px-20 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-xl hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 md:mr-4 cursor-pointer"
           >
             {submitting ? "..." : "SUBMIT SCORE"}
