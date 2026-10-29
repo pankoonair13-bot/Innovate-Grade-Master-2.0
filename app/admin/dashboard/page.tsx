@@ -598,7 +598,7 @@ export default function AdminDashboard() {
 
         <footer className="mt-16 text-center pb-10">
           <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-400">
-            Developed by Pankoo Nair • Innovate Grade Master 2.0
+            Developed by Pankoo Nair / Shahidzwan • Innovate Grade Master 2.0
           </p>
         </footer>
       </div>
